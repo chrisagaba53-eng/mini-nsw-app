@@ -235,11 +235,11 @@ export default function Home() {
             </button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-gray-100 text-center text-[11px] text-gray-400 space-y-1">
+          {/* <div className="mt-6 pt-4 border-t border-gray-100 text-center text-[11px] text-gray-400 space-y-1">
             <p>Demo Traders: <code className="text-emerald-700">trader@abc.com</code> / <code className="text-emerald-700">password123</code></p>
             <p>Demo Agency: <code className="text-emerald-700">customs@nsw.gov.ng</code> / <code className="text-emerald-700">secure2026</code></p>
             <p>Demo Admin: <code className="text-emerald-700">admin@nsw.gov.ng</code> / <code className="text-emerald-700">admin2026</code></p>
-          </div>
+          </div> */}
         </div>
       </div>
     );
