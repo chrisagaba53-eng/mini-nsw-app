@@ -1,0 +1,28 @@
+[
+  {
+    "id": "NSW-2026-0001",
+    "company": "ABC Manufacturing Ltd",
+    "rcNumber": "RC-123456",
+    "tin": "10029384-0001",
+    "type": "Import Permit (Form M)",
+    "product": "Industrial Machinery",
+    "origin": "Germany",
+    "customsStatus": "Pending Assessment",
+    "nafdacStatus": "Cleared",
+    "firsStatus": "Verified",
+    "overallStatus": "Under Review"
+  },
+  {
+    "id": "NSW-2026-0002",
+    "company": "AfriAgro Exports Ltd",
+    "rcNumber": "RC-987654",
+    "tin": "20038475-0002",
+    "type": "Export License",
+    "product": "Raw Cashew Nuts",
+    "origin": "Nigeria",
+    "customsStatus": "Cleared",
+    "nafdacStatus": "Pending Inspection",
+    "firsStatus": "Verified",
+    "overallStatus": "Under Review"
+  }
+]
