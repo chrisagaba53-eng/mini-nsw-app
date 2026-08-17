@@ -9,7 +9,12 @@ export default function Home() {
   const [loginError, setLoginError] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedAppDocs, setSelectedAppDocs] = useState(null); // State for Document Modal
+  const [selectedAppDocs, setSelectedAppDocs] = useState(null);
+  const [gatewayStatus, setGatewayStatus] = useState('Operational'); // Admin function control
+  const [auditLogs, setAuditLogs] = useState([
+    { id: 1, action: 'User authentication verified', role: 'TRADER', time: '08:30 WAT' },
+    { id: 2, action: 'Customs clearance processed', role: 'AGENCY', time: '09:05 WAT' }
+  ]);
   
   // Dynamic Application State with Default Data
   const [applications, setApplications] = useState([
@@ -22,7 +27,6 @@ export default function Home() {
     { id: 1, text: "System maintenance scheduled for 00:00 WAT.", time: "2h ago", read: false }
   ]);
 
-  // Persist Data to Browser Local Storage
   useEffect(() => {
     setIsClient(true);
     const savedApps = localStorage.getItem('nsw_applications');
@@ -41,23 +45,32 @@ export default function Home() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Dynamic Metrics Calculation
   const totalApps = applications.length;
   const approvedApps = applications.filter(a => a.status === 'Approved').length;
   const pendingApps = applications.filter(a => a.status === 'Pending Review').length;
   const queriedApps = applications.filter(a => a.status === 'Queried').length;
 
-  // Search Filter Logic
   const filteredApps = applications.filter(app => 
     app.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
     app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Professional Role-Preset Selector for Clean Demonstration
+  const handlePresetLogin = (roleType) => {
+    setLoginError('');
+    if (roleType === 'trader') {
+      setSession({ role: 'trader', name: 'ABC Manufacturing Ltd', email: 'trader@abc.com' });
+    } else if (roleType === 'agency') {
+      setSession({ role: 'agency', name: 'Customs Officer (J. Adebayo)', email: 'customs@nsw.gov.ng' });
+    } else if (roleType === 'admin') {
+      setSession({ role: 'admin', name: 'Platform Administrator', email: 'admin@nsw.gov.ng' });
+    }
+  };
+
   const handleSecureLogin = (e) => {
     e.preventDefault();
     setLoginError('');
-
     const email = emailInput.trim().toLowerCase();
     const pwd = passwordInput.trim();
 
@@ -68,7 +81,7 @@ export default function Home() {
     } else if (email === 'admin@nsw.gov.ng' && pwd === 'admin2026') {
       setSession({ role: 'admin', name: 'Platform Administrator', email: 'admin@nsw.gov.ng' });
     } else {
-      setLoginError('Access Denied: Invalid official email or password.');
+      setLoginError('Access Denied: Invalid official credentials.');
     }
   };
 
@@ -94,7 +107,6 @@ export default function Home() {
 
   const handleAgencyAction = (appId, action) => {
     const updatedStatus = action === 'Approve' ? 'Approved' : 'Queried';
-    
     const updatedApps = applications.map(app => 
       app.id === appId ? { ...app, status: updatedStatus } : app
     );
@@ -109,10 +121,10 @@ export default function Home() {
     setNotifications([newNotif, ...notifications]);
   };
 
-  const clearDemoData = () => {
-    localStorage.removeItem('nsw_applications');
-    localStorage.removeItem('nsw_notifications');
-    window.location.reload();
+  const toggleGateway = () => {
+    const nextStatus = gatewayStatus === 'Operational' ? 'Maintenance Mode' : 'Operational';
+    setGatewayStatus(nextStatus);
+    setAuditLogs([{ id: Date.now(), action: `Gateway status changed to ${nextStatus}`, role: 'ADMIN', time: 'Just now' }, ...auditLogs]);
   };
 
   const getStatusBadge = (status) => {
@@ -123,17 +135,48 @@ export default function Home() {
 
   if (!isClient) return null;
 
-  // Secure Enterprise Login View
+  // Professional Enterprise Login Portal
   if (!session) {
     return (
-      <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4 relative">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border-t-8 border-emerald-700">
+      <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 border-t-8 border-emerald-700">
           <div className="flex justify-center mb-4">
             <img src="/logo.png" alt="National Single Window Logo" className="h-16 w-auto object-contain" />
           </div>
 
           <h1 className="text-2xl font-extrabold text-emerald-900 text-center tracking-tight">National Single Window</h1>
           <p className="text-xs text-gray-500 text-center mt-1 mb-6 uppercase tracking-widest font-semibold">Enterprise Trade Portal (Nigeria)</p>
+
+          {/* Professional Role Access Selection */}
+          <div className="mb-6 bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+            <span className="block text-xs font-bold text-emerald-900 uppercase mb-2 text-center">Select Portal Access Gateway</span>
+            <div className="grid grid-cols-3 gap-2">
+              <button 
+                onClick={() => handlePresetLogin('trader')}
+                className="bg-white hover:bg-emerald-800 hover:text-white text-emerald-900 border border-emerald-300 text-xs font-bold py-2 px-2 rounded-lg shadow-sm transition text-center"
+              >
+                Trader Portal
+              </button>
+              <button 
+                onClick={() => handlePresetLogin('agency')}
+                className="bg-white hover:bg-emerald-800 hover:text-white text-emerald-900 border border-emerald-300 text-xs font-bold py-2 px-2 rounded-lg shadow-sm transition text-center"
+              >
+                Agency Review
+              </button>
+              <button 
+                onClick={() => handlePresetLogin('admin')}
+                className="bg-white hover:bg-emerald-800 hover:text-white text-emerald-900 border border-emerald-300 text-xs font-bold py-2 px-2 rounded-lg shadow-sm transition text-center"
+              >
+                System Admin
+              </button>
+            </div>
+          </div>
+
+          <div className="relative flex py-2 items-center mb-4">
+            <div className="flex-grow border-t border-gray-200"></div>
+            <span className="flex-shrink mx-4 text-gray-400 text-[10px] uppercase font-bold">Or Sign In Manually</span>
+            <div className="flex-grow border-t border-gray-200"></div>
+          </div>
 
           {loginError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded text-center">
@@ -173,18 +216,7 @@ export default function Home() {
               Sign In to Portal
             </button>
           </form>
-
-          <div className="mt-8 pt-4 border-t border-gray-100 text-[10px] text-gray-400 text-center">
-            <p className="font-bold uppercase mb-1">System Demo Credentials:</p>
-            <p>Trader: trader@abc.com / password123</p>
-            <p>Agency: customs@nsw.gov.ng / secure2026</p>
-            <p>Admin: admin@nsw.gov.ng / admin2026</p>
-          </div>
         </div>
-        
-        <button onClick={clearDemoData} className="absolute bottom-4 right-4 text-[10px] text-emerald-700 hover:text-emerald-300 transition">
-          Reset Environment Data
-        </button>
       </div>
     );
   }
@@ -238,7 +270,7 @@ export default function Home() {
 
             <div className="text-xs font-medium bg-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-700 flex items-center space-x-3">
               <div>
-                <span className="block text-[10px] text-emerald-300 uppercase">Authenticated as</span>
+                <span className="block text-[10px] text-emerald-300 uppercase">Authenticated Role</span>
                 <span className="font-bold uppercase">{session.role}</span>
               </div>
               <button 
@@ -373,24 +405,54 @@ export default function Home() {
         )}
 
         {session.role === 'admin' && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-6">System Activity & Metrics Overview</h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                <span className="text-xs text-emerald-700 font-semibold uppercase">Total Applications</span>
-                <h4 className="text-3xl font-extrabold text-emerald-900 mt-1">{totalApps}</h4>
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">System Administration & Oversight Console</h3>
+                <p className="text-xs text-gray-500 mt-1">Responsible for platform-wide gateway health, user access governance, and audit tracking.</p>
               </div>
-              <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                <span className="text-xs text-green-700 font-semibold uppercase">Approved</span>
-                <h4 className="text-3xl font-extrabold text-green-900 mt-1">{approvedApps}</h4>
+              <div className="flex items-center space-x-3">
+                <span className="text-xs font-bold text-gray-600">Gateway Status:</span>
+                <button 
+                  onClick={toggleGateway} 
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow transition ${gatewayStatus === 'Operational' ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'}`}
+                >
+                  {gatewayStatus} (Click to Toggle)
+                </button>
               </div>
-              <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
-                <span className="text-xs text-yellow-700 font-semibold uppercase">Pending Review</span>
-                <h4 className="text-3xl font-extrabold text-yellow-900 mt-1">{pendingApps}</h4>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Platform Metrics Overview</h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                  <span className="text-xs text-emerald-700 font-semibold uppercase">Total Applications</span>
+                  <h4 className="text-3xl font-extrabold text-emerald-900 mt-1">{totalApps}</h4>
+                </div>
+                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                  <span className="text-xs text-green-700 font-semibold uppercase">Approved</span>
+                  <h4 className="text-3xl font-extrabold text-green-900 mt-1">{approvedApps}</h4>
+                </div>
+                <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
+                  <span className="text-xs text-yellow-700 font-semibold uppercase">Pending Review</span>
+                  <h4 className="text-3xl font-extrabold text-yellow-900 mt-1">{pendingApps}</h4>
+                </div>
+                <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                  <span className="text-xs text-red-700 font-semibold uppercase">Queried / Flagged</span>
+                  <h4 className="text-3xl font-extrabold text-red-900 mt-1">{queriedApps}</h4>
+                </div>
               </div>
-              <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                <span className="text-xs text-red-700 font-semibold uppercase">Rejected / Queried</span>
-                <h4 className="text-3xl font-extrabold text-red-900 mt-1">{queriedApps}</h4>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">System Security Audit Logs</h4>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 max-h-48 overflow-y-auto text-xs font-mono space-y-2">
+                {auditLogs.map(log => (
+                  <div key={log.id} className="flex justify-between border-b pb-1">
+                    <span className="text-gray-800">[{log.role}] {log.action}</span>
+                    <span className="text-gray-400">{log.time}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
