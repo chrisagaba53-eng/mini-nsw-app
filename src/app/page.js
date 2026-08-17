@@ -2,7 +2,9 @@
 import { useState } from 'react';
 
 export default function Home() {
-  const [currentUser, setCurrentUser] = useState(null); // 'trader', 'agency', 'admin'
+  const [session, setSession] = useState(null); // { role: 'trader' | 'agency' | 'admin', name: string, email: string }
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([
     { id: 1, text: "Import Permit NSW-2026-0001 approved by Customs.", time: "10m ago", read: false },
@@ -11,67 +13,99 @@ export default function Home() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // If not logged in, show the clean role-selection login screen
-  if (!currentUser) {
+  const handleLogin = (roleType) => {
+    if (roleType === 'trader') {
+      setSession({ role: 'trader', name: 'ABC Manufacturing Ltd', email: 'trader@abc.com' });
+    } else if (roleType === 'agency') {
+      setSession({ role: 'agency', name: 'Customs Officer (J. Adebayo)', email: 'customs@nsw.gov.ng' });
+    } else if (roleType === 'admin') {
+      setSession({ role: 'admin', name: 'Platform Administrator', email: 'admin@nsw.gov.ng' });
+    }
+  };
+
+  // Secure Enterprise Login View
+  if (!session) {
     return (
-      <div className="min-h-screen bg-emerald-900 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center border-t-8 border-emerald-600">
-          
-          {/* Prominent Official Logo */}
+      <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border-t-8 border-emerald-700">
           <div className="flex justify-center mb-4">
             <img src="/logo.png" alt="National Single Window Logo" className="h-16 w-auto object-contain" />
           </div>
 
-          <h1 className="text-2xl font-extrabold text-emerald-900 tracking-tight">National Single Window</h1>
-          <p className="text-xs text-gray-500 mt-1 mb-8 uppercase tracking-widest font-semibold">Nigeria's Premier Trade Platform</p>
+          <h1 className="text-2xl font-extrabold text-emerald-900 text-center tracking-tight">National Single Window</h1>
+          <p className="text-xs text-gray-500 text-center mt-1 mb-6 uppercase tracking-widest font-semibold">Enterprise Trade Portal (Nigeria)</p>
 
-          <div className="space-y-3 text-left">
-            <label className="block text-xs font-bold text-gray-700 uppercase">Select Role to Sign In Instantly:</label>
-            
+          <form onSubmit={(e) => { e.preventDefault(); handleLogin('trader'); }} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Official Email Address</label>
+              <input 
+                type="email" 
+                required
+                placeholder="name@agency.gov.ng or company.com" 
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Password</label>
+              <input 
+                type="password" 
+                required
+                placeholder="••••••••" 
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+              />
+            </div>
+
             <button 
-              onClick={() => setCurrentUser('trader')}
-              className="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold p-3 rounded-xl transition flex justify-between items-center text-sm"
+              type="submit"
+              className="w-full bg-emerald-800 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-emerald-900 transition shadow"
             >
-              <span>Trader Portal (ABC Mfg)</span>
-              <span className="text-xs bg-emerald-200 text-emerald-800 px-2 py-1 rounded">Access Import/Export</span>
+              Sign In to Portal
             </button>
+          </form>
 
-            <button 
-              onClick={() => setCurrentUser('agency')}
-              className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 font-bold p-3 rounded-xl transition flex justify-between items-center text-sm"
-            >
-              <span>Government Agency Officer</span>
-              <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">Customs / NAFDAC</span>
-            </button>
-
-            <button 
-              onClick={() => setCurrentUser('admin')}
-              className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-300 text-gray-900 font-bold p-3 rounded-xl transition flex justify-between items-center text-sm"
-            >
-              <span>System Administrator</span>
-              <span className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">Metrics & Controls</span>
-            </button>
-          </div>
-
-          <div className="mt-8 text-xs text-gray-400">
-            Secure Gateway • Federal Republic of Nigeria
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <p className="text-[11px] text-gray-500 text-center mb-3 font-semibold uppercase tracking-wider">Quick Demo Access (Supervisor Review)</p>
+            <div className="grid grid-cols-3 gap-2">
+              <button 
+                onClick={() => handleLogin('trader')}
+                className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold py-2 px-2 rounded border border-emerald-200 transition"
+              >
+                Trader
+              </button>
+              <button 
+                onClick={() => handleLogin('agency')}
+                className="bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-bold py-2 px-2 rounded border border-blue-200 transition"
+              >
+                Agency
+              </button>
+              <button 
+                onClick={() => handleLogin('admin')}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-2 rounded border border-gray-300 transition"
+              >
+                Admin
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Main Dashboard View once logged in
+  // Authenticated Portal Layout
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
-      {/* Top Navigation Bar with Green & White Theme & Notification Bell */}
       <header className="bg-emerald-900 text-white shadow-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <img src="/logo.png" alt="NSW Logo" className="h-12 w-auto object-contain bg-white rounded p-1" />
             <div>
               <h1 className="text-base font-bold tracking-wide">National Single Window (NSW)</h1>
-              <p className="text-xs text-emerald-300">Nigeria's Premier Trade Platform</p>
+              <p className="text-xs text-emerald-300">Federal Republic of Nigeria - Trade Portal</p>
             </div>
           </div>
 
@@ -93,7 +127,6 @@ export default function Home() {
                 )}
               </button>
 
-              {/* Notification Dropdown */}
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2 text-gray-800 z-50">
                   <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
@@ -112,23 +145,23 @@ export default function Home() {
               )}
             </div>
 
-            <div className="text-xs font-medium bg-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-700 flex items-center space-x-2">
-              <span>Role: <strong className="uppercase">{currentUser}</strong></span>
+            <div className="text-xs font-medium bg-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-700 flex items-center space-x-3">
+              <div>
+                <span className="block text-[10px] text-emerald-300 uppercase">Authenticated as</span>
+                <span className="font-bold uppercase">{session.role} ({session.email})</span>
+              </div>
               <button 
-                onClick={() => setCurrentUser(null)} 
-                className="ml-2 text-emerald-300 hover:text-white underline text-[10px]"
+                onClick={() => setSession(null)} 
+                className="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1 rounded text-xs font-semibold transition"
               >
-                Switch Role
+                Sign Out
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        
-        {/* Functional Process Flowbox */}
         <section className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100">
           <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-4">Core Workflow Process</h2>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
@@ -155,12 +188,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Dynamic Role Views */}
-        {currentUser === 'trader' && (
+        {session.role === 'trader' && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-900">Trader Dashboard - ABC Manufacturing Ltd</h3>
-              <button className="bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-800 transition">
+              <button className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition">
                 + New Application
               </button>
             </div>
@@ -191,7 +223,7 @@ export default function Home() {
           </div>
         )}
 
-        {currentUser === 'agency' && (
+        {session.role === 'agency' && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Government Agency Review Console (Customs & NAFDAC)</h3>
             <table className="w-full text-left border-collapse">
@@ -218,7 +250,7 @@ export default function Home() {
           </div>
         )}
 
-        {currentUser === 'admin' && (
+        {session.role === 'admin' && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-6">System Activity & Metrics Overview</h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -241,7 +273,6 @@ export default function Home() {
             </div>
           </div>
         )}
-
       </main>
     </div>
   );
