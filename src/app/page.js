@@ -1,380 +1,218 @@
 "use client";
+import { useState, useEffect } from 'react';
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
+export default function Home() {
+  const [activeTab, setActiveTab] = useState('trader');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, text: "Import Permit NSW-2026-0001 approved by Customs.", time: "10m ago", read: false },
+    { id: 2, text: "Additional documentation requested for NSW-2026-0002.", time: "1h ago", read: false },
+    { id: 3, text: "New application submitted successfully.", time: "2h ago", read: true }
+  ]);
 
-export default function EnterpriseNSWPortal() {
-  const [userRole, setUserRole] = useState(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [applications, setApplications] = useState([]);
-  const [selectedCertificate, setSelectedCertificate] = useState(null);
-  const [viewingDocs, setViewingDocs] = useState(null);
+  const unreadCount = notifications.filter(n => !n.read).length;
 
-  const [companyName, setCompanyName] = useState("");
-  const [rcNumber, setRcNumber] = useState("");
-  const [tin, setTin] = useState("");
-  const [permitType, setPermitType] = useState("Import Permit (Form M)");
-  const [productDesc, setProductDesc] = useState("");
-  const [originCountry, setOriginCountry] = useState("");
-
-  useEffect(() => {
-    fetchApplications();
-  }, []);
-
-  const fetchApplications = async () => {
-    try {
-      const res = await fetch("/api/applications");
-      const data = await res.json();
-      setApplications(data);
-    } catch (err) {
-      console.error("Failed to load applications", err);
-    }
+  const markAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
   };
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const EXPECTED_PASSWORD = "Password123!"; 
-
-    if (password !== EXPECTED_PASSWORD) {
-      alert("Authentication Failed: Invalid password. Portal access denied.");
-      return;
-    }
-
-    if (email === "trader@nsw.gov") setUserRole("trader");
-    else if (email === "customs@nsw.gov") setUserRole("customs");
-    else if (email === "nafdac@nsw.gov") setUserRole("nafdac");
-    else if (email === "firs@nsw.gov") setUserRole("firs");
-    else if (email === "admin@nsw.gov") setUserRole("admin");
-    else alert("Authentication Failed: Unrecognized government or trader identity.");
-  };
-
-  const updateStatus = async (appId, field, status) => {
-    const res = await fetch("/api/applications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "updateStatus", appId, field, status }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setApplications(data.applications);
-    }
-  };
-
-  const handleCreateApplication = async (e) => {
-    e.preventDefault();
-    if (!rcNumber.startsWith("RC-")) {
-      alert("Invalid CAC format. Must start with 'RC-' (e.g. RC-123456)");
-      return;
-    }
-
-    const res = await fetch("/api/applications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "create",
-        company: companyName,
-        rcNumber,
-        tin,
-        permitType,
-        productDesc,
-        originCountry,
-      }),
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      setApplications(data.applications);
-      setProductDesc("");
-      setOriginCountry("");
-      setCompanyName("");
-      setRcNumber("");
-      setTin("");
-      alert("Form M & Application successfully saved to Single Window database.");
-    }
-  };
-
-  const formatDate = (isoString) => {
-    if (!isoString) return "Legacy Data";
-    const date = new Date(isoString);
-    return date.toLocaleDateString('en-GB') + ' ' + date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  if (!userRole) {
-    return (
-      <main className="min-h-screen bg-green-50 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border border-green-100">
-          <div className="flex justify-center mb-6">
-            <Image src="/logo.png" alt="National Single Window Logo" width={80} height={80} className="object-contain" />
-          </div>
-          <h1 className="text-2xl font-bold text-center text-green-800 mb-1">National Single Window</h1>
-          <p className="text-center text-gray-500 mb-6 text-sm">Enterprise Trade Portal (Nigeria)</p>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Official Email Address</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-black text-sm" placeholder="trader@nsw.gov" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-black text-sm" placeholder="••••••••" required />
-            </div>
-            <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition duration-200 text-sm">Sign In to Portal</button>
-          </form>
-          <div className="mt-6 text-xs text-gray-500 space-y-1 bg-green-50 p-3 rounded-lg border border-green-200">
-            <p className="font-semibold text-green-800 mb-1">Test Accounts (Password: <code className="bg-white px-1">Password123!</code>):</p>
-            <p>Trader: <code className="bg-white px-1">trader@nsw.gov</code></p>
-            <p>Customs: <code className="bg-white px-1">customs@nsw.gov</code> | NAFDAC: <code className="bg-white px-1">nafdac@nsw.gov</code></p>
-            <p>FIRS: <code className="bg-white px-1">firs@nsw.gov</code> | Admin: <code className="bg-white px-1">admin@nsw.gov</code></p>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  const activeApp = applications[0];
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800">
-      <header className="bg-green-700 text-white px-6 py-4 flex justify-between items-center shadow-md">
-        <div className="flex items-center space-x-3">
-          <Image src="/logo.png" alt="NSW Logo" width={36} height={36} className="bg-white rounded p-0.5 object-contain" />
-          <span className="font-bold text-lg tracking-wide">Nigeria National Single Window</span>
-        </div>
-        <div className="flex items-center space-x-4">
-          <span className="capitalize bg-green-800 px-3 py-1 rounded-full text-xs font-semibold border border-green-600">
-            Role: {userRole}
-          </span>
-          <button onClick={() => { setUserRole(null); setPassword(""); }} className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1.5 rounded transition">Logout</button>
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
+      {/* Top Navigation Bar with Green & White Theme & Notification Bell */}
+      <header className="bg-emerald-800 text-white shadow-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <img src="/logo.png" alt="NSW Logo" className="h-10 w-10 object-contain bg-white rounded p-1" />
+            <div>
+              <h1 className="text-lg font-bold tracking-wide">National Single Window (NSW)</h1>
+              <p className="text-xs text-emerald-200">Federal Republic of Nigeria - Trade Portal</p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-6 relative">
+            {/* Notification Bell */}
+            <div className="relative">
+              <button 
+                onClick={() => { setShowNotifications(!showNotifications); markAsRead(); }}
+                className="relative p-2 rounded-full hover:bg-emerald-700 transition focus:outline-none"
+                aria-label="Notifications"
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2 text-gray-800 z-50">
+                  <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
+                    <span className="font-semibold text-sm">Notifications</span>
+                    <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">System Live</span>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {notifications.map((notif) => (
+                      <div key={notif.id} className={`px-4 py-3 border-b border-gray-50 hover:bg-gray-50 text-xs ${!notif.read ? 'bg-emerald-50/40' : ''}`}>
+                        <p className="font-medium text-gray-900">{notif.text}</p>
+                        <span className="text-gray-400 mt-1 block">{notif.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="text-sm font-medium bg-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-600">
+              Role: <span className="capitalize font-bold">{activeTab}</span>
+            </div>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-6 space-y-6">
-        {userRole === "trader" && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-green-900">Trader Portal - Form M & Permits</h2>
+      {/* Main Container */}
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        
+        {/* Functional Process Flowbox */}
+        <section className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-800 mb-4">Core Workflow Process</h2>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+              <span className="block font-bold text-emerald-800 text-sm">1. Trader</span>
+              <span className="text-xs text-gray-600">Submit Application & Docs</span>
+            </div>
+            <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+              <span className="block font-bold text-gray-700 text-sm">2. NSW Gateway</span>
+              <span className="text-xs text-gray-600">Validate & Route Data</span>
+            </div>
+            <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+              <span className="block font-bold text-gray-700 text-sm">3. Gov Agency</span>
+              <span className="text-xs text-gray-600">Customs / NAFDAC Review</span>
+            </div>
+            <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+              <span className="block font-bold text-gray-700 text-sm">4. Decision</span>
+              <span className="text-xs text-gray-600">Approve / Reject / Query</span>
+            </div>
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+              <span className="block font-bold text-emerald-800 text-sm">5. Alert</span>
+              <span className="text-xs text-gray-600">Instant Notification</span>
+            </div>
+          </div>
+        </section>
 
-            {activeApp && (
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
-                    Submission: {activeApp.id} ({activeApp.overallStatus})
-                  </h3>
-                  <div className="space-x-2">
-                    {(activeApp.paymentStatus === "Unpaid" || !activeApp.paymentStatus) && (
-                      <button 
-                        onClick={() => {
-                          alert("Redirecting to Remita Secure Gateway...\n\nPayment Successful! TSA updated.");
-                          updateStatus(activeApp.id, "paymentStatus", "Paid");
-                        }}
-                        className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-2 rounded shadow animate-pulse"
-                      >
-                        Pay Levies via Remita
-                      </button>
-                    )}
-                    {activeApp.overallStatus === "Approved" && (
-                      <button
-                        onClick={() => setSelectedCertificate(activeApp)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded shadow"
-                      >
-                        View Digital Clearance Certificate
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 gap-4 text-sm bg-gray-50 p-4 rounded-lg border mb-4">
-                  <div><strong>Customs (NCS):</strong> <span className="text-blue-600">{activeApp.customsStatus}</span></div>
-                  <div><strong>NAFDAC:</strong> <span className="text-amber-600">{activeApp.nafdacStatus}</span></div>
-                  <div><strong>FIRS Tax:</strong> <span className="text-green-600">{activeApp.firsStatus}</span></div>
-                  <div><strong>TSA Payment:</strong> <span className={activeApp.paymentStatus === "Paid" ? "text-green-600 font-bold" : "text-red-600 font-bold"}>{activeApp.paymentStatus || "Unpaid"}</span></div>
-                </div>
-                <div className="text-xs text-gray-600 bg-blue-50 p-3 rounded border border-blue-200">
-                  <span className="font-bold text-blue-900">Attached Manifest Documents:</span> {activeApp.documents ? activeApp.documents.join(", ") : "None"}
-                </div>
+        {/* Role Switcher Tabs */}
+        <div className="flex space-x-2 mb-6 border-b border-gray-200 pb-2">
+          <button 
+            onClick={() => setActiveTab('trader')} 
+            className={`px-4 py-2 font-semibold text-sm rounded-lg transition ${activeTab === 'trader' ? 'bg-emerald-800 text-white shadow' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+          >
+            Trader Portal (ABC Mfg)
+          </button>
+          <button 
+            onClick={() => setActiveTab('agency')} 
+            className={`px-4 py-2 font-semibold text-sm rounded-lg transition ${activeTab === 'agency' ? 'bg-emerald-800 text-white shadow' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+          >
+            Government Agency (Customs/NAFDAC)
+          </button>
+          <button 
+            onClick={() => setActiveTab('admin')} 
+            className={`px-4 py-2 font-semibold text-sm rounded-lg transition ${activeTab === 'admin' ? 'bg-emerald-800 text-white shadow' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+          >
+            Administrator Reporting
+          </button>
+        </div>
+
+        {/* Dynamic Role Views */}
+        {activeTab === 'trader' && (
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Trader Dashboard - Applications</h3>
+              <button className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
+                + New Application
+              </button>
+            </div>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4">Application ID</th>
+                  <th className="py-3 px-4">Type</th>
+                  <th className="py-3 px-4">Product</th>
+                  <th className="py-3 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                <tr className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 px-4 font-medium">NSW-2026-0001</td>
+                  <td className="py-3 px-4">Import Permit</td>
+                  <td className="py-3 px-4">Industrial Machine</td>
+                  <td className="py-3 px-4"><span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-semibold">Pending Review</span></td>
+                </tr>
+                <tr className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 px-4 font-medium">NSW-2026-0002</td>
+                  <td className="py-3 px-4">Export License</td>
+                  <td className="py-3 px-4">Raw Cashew Nuts</td>
+                  <td className="py-3 px-4"><span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-semibold">Approved</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'agency' && (
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Agency Review Console (Customs & NAFDAC)</h3>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4">Application ID</th>
+                  <th className="py-3 px-4">Company</th>
+                  <th className="py-3 px-4">Customs Status</th>
+                  <th className="py-3 px-4">Action</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                <tr className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 px-4 font-medium">NSW-2026-0001</td>
+                  <td className="py-3 px-4">ABC Manufacturing Ltd</td>
+                  <td className="py-3 px-4"><span className="text-blue-600 font-medium">Under Review</span></td>
+                  <td className="py-3 px-4 space-x-2">
+                    <button className="bg-green-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-green-700">Approve</button>
+                    <button className="bg-amber-500 text-white px-3 py-1 rounded text-xs font-medium hover:bg-amber-600">Query</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'admin' && (
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900 mb-6">System Activity & Metrics Overview</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                <span className="text-xs text-emerald-700 font-semibold uppercase">Total Applications</span>
+                <h4 className="text-2xl font-extrabold text-emerald-900 mt-1">248</h4>
               </div>
-            )}
-
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h3 className="font-semibold text-lg mb-4 text-gray-800 border-b pb-2">Initiate New Trade Application</h3>
-              <form onSubmit={handleCreateApplication} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div><label className="block text-xs font-medium text-gray-700 mb-1">Company Registered Name</label><input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black" required /></div>
-                <div><label className="block text-xs font-medium text-gray-700 mb-1">CAC RC Number</label><input type="text" value={rcNumber} onChange={(e) => setRcNumber(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black" required /></div>
-                <div><label className="block text-xs font-medium text-gray-700 mb-1">FIRS Tax ID (TIN)</label><input type="text" value={tin} onChange={(e) => setTin(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black" required /></div>
-                <div><label className="block text-xs font-medium text-gray-700 mb-1">Permit Type</label><select value={permitType} onChange={(e) => setPermitType(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm bg-white text-black"><option value="Import Permit (Form M)">Import Permit (Form M)</option><option value="Export License">Export License</option></select></div>
-                <div><label className="block text-xs font-medium text-gray-700 mb-1">Product Description</label><input type="text" value={productDesc} onChange={(e) => setProductDesc(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black" required /></div>
-                <div><label className="block text-xs font-medium text-gray-700 mb-1">Origin Country</label><input type="text" value={originCountry} onChange={(e) => setOriginCountry(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black" required /></div>
-                <div className="md:col-span-3"><button type="submit" className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition">Submit to Single Window Registry</button></div>
-              </form>
+              <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                <span className="text-xs text-green-700 font-semibold uppercase">Approved</span>
+                <h4 className="text-2xl font-extrabold text-green-900 mt-1">192</h4>
+              </div>
+              <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
+                <span className="text-xs text-yellow-700 font-semibold uppercase">Pending Review</span>
+                <h4 className="text-2xl font-extrabold text-yellow-900 mt-1">42</h4>
+              </div>
+              <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                <span className="text-xs text-red-700 font-semibold uppercase">Rejected / Queried</span>
+                <h4 className="text-2xl font-extrabold text-red-900 mt-1">14</h4>
+              </div>
             </div>
           </div>
         )}
 
-        {(userRole === "customs" || userRole === "nafdac") && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-green-900">
-              {userRole === "customs" ? "Nigeria Customs Service (NCS) - Duty & PAAR Module" : "NAFDAC - Regulatory Compliance & Inspection"}
-            </h2>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-green-50 text-green-900 border-b border-green-100">
-                  <tr><th className="p-4">App ID</th><th className="p-4">Company</th><th className="p-4">Product</th><th className="p-4">Documents</th><th className="p-4">TSA Payment</th><th className="p-4">Status</th><th className="p-4 text-right">Action</th></tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {applications.map((app) => {
-                    const isPaid = app.paymentStatus === "Paid";
-                    const statusField = userRole === "customs" ? "customsStatus" : "nafdacStatus";
-                    const currentStatus = app[statusField];
-                    return (
-                      <tr key={app.id}>
-                        <td className="p-4 font-mono font-bold text-green-800">{app.id}</td>
-                        <td className="p-4">{app.company}</td>
-                        <td className="p-4">{app.product}</td>
-                        <td className="p-4">
-                          <button onClick={() => setViewingDocs(app)} className="text-xs bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded border font-semibold text-gray-700">
-                            View Files ({app.documents ? app.documents.length : 0})
-                          </button>
-                        </td>
-                        <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${isPaid ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{app.paymentStatus || "Unpaid"}</span></td>
-                        <td className="p-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">{currentStatus}</span></td>
-                        <td className="p-4 text-right">
-                          <button disabled={!isPaid} onClick={() => updateStatus(app.id, statusField, "Cleared")} className={`px-3 py-1 rounded text-xs text-white ${isPaid ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed"}`} title={!isPaid ? "Cannot clear until TSA payment is confirmed" : "Clear Cargo"}>
-                            {userRole === "customs" ? "Clear Cargo" : "Approve Inspection"}
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {userRole === "firs" && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-green-900">Federal Inland Revenue Service (FIRS) - TIN Verification</h2>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-green-50 text-green-900 border-b border-green-100">
-                  <tr><th className="p-4">App ID</th><th className="p-4">Company</th><th className="p-4">TIN Number</th><th className="p-4">Tax Status</th></tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {applications.map((app) => (
-                    <tr key={app.id}><td className="p-4 font-mono font-bold text-green-800">{app.id}</td><td className="p-4">{app.company}</td><td className="p-4 font-mono">{app.tin}</td><td className="p-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700">{app.firsStatus}</span></td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {userRole === "admin" && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-green-900">National Single Window - Master Oversight</h2>
-            <div className="grid grid-cols-3 gap-6">
-              <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                <p className="text-xs font-bold text-gray-400 uppercase">Total Trade Submissions</p>
-                <p className="text-3xl font-extrabold text-green-800 mt-2">{applications.length}</p>
-              </div>
-              <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                <p className="text-xs font-bold text-gray-400 uppercase">Fully Approved Permits</p>
-                <p className="text-3xl font-extrabold text-blue-600 mt-2">{applications.filter((a) => a.overallStatus === "Approved").length}</p>
-              </div>
-              <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                <p className="text-xs font-bold text-gray-400 uppercase">Pending Payments</p>
-                <p className="text-3xl font-extrabold text-red-500 mt-2">{applications.filter((a) => a.paymentStatus !== "Paid").length}</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="bg-gray-800 text-white p-4 border-b border-gray-700 flex justify-between items-center">
-                <h3 className="font-bold">System-Wide Audit Log</h3>
-                <span className="text-xs bg-gray-600 px-2 py-1 rounded">Read-Only</span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs whitespace-nowrap">
-                  <thead className="bg-gray-50 text-gray-600 border-b">
-                    <tr><th className="p-3">Timestamp</th><th className="p-3">App ID</th><th className="p-3">Company Entity</th><th className="p-3">FIRS (Tax)</th><th className="p-3">Payment (TSA)</th><th className="p-3">NCS (Customs)</th><th className="p-3">NAFDAC</th><th className="p-3">System Status</th></tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {applications.map((app) => (
-                      <tr key={app.id} className="hover:bg-gray-50">
-                        <td className="p-3 text-gray-500">{formatDate(app.createdAt)}</td>
-                        <td className="p-3 font-mono font-bold">{app.id}</td>
-                        <td className="p-3">{app.company} <br/><span className="text-gray-400">{app.rcNumber}</span></td>
-                        <td className="p-3"><span className="text-green-600">{app.firsStatus}</span></td>
-                        <td className="p-3"><span className={app.paymentStatus === "Paid" ? "text-green-600" : "text-red-500"}>{app.paymentStatus || "Unpaid"}</span></td>
-                        <td className="p-3"><span className="text-blue-600">{app.customsStatus}</span></td>
-                        <td className="p-3"><span className="text-amber-600">{app.nafdacStatus}</span></td>
-                        <td className="p-3"><span className={`px-2 py-1 rounded font-bold ${app.overallStatus === "Approved" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>{app.overallStatus}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
-
-      {/* Document Inspector Modal */}
-      {viewingDocs && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 text-black shadow-2xl">
-            <h3 className="text-lg font-bold text-green-900 border-b pb-2">Application Documents: {viewingDocs.id}</h3>
-            <p className="text-xs text-gray-600">Submitted by: <strong>{viewingDocs.company}</strong></p>
-            <div className="space-y-2">
-              {viewingDocs.documents?.map((doc, idx) => (
-                <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded border text-sm">
-                  <span className="font-mono text-xs">{doc}</span>
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">Verified Secure</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-end pt-2">
-              <button onClick={() => setViewingDocs(null)} className="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded text-xs font-bold">Close Inspector</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Digital Clearance Certificate Modal */}
-      {selectedCertificate && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-8 border-4 border-green-800 shadow-2xl relative space-y-6 text-black">
-            <div className="text-center border-b pb-4">
-              <h2 className="text-xl font-extrabold text-green-900 uppercase tracking-wider">Federal Republic of Nigeria</h2>
-              <p className="text-sm font-semibold text-gray-600">National Single Window (NSW) Enterprise Trade Portal</p>
-              <h3 className="text-lg font-bold text-green-700 mt-2">ELECTRONIC PERMIT & CARGO RELEASE CERTIFICATE</h3>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm bg-green-50 p-4 rounded-xl border border-green-200">
-              <div><strong>Application ID:</strong> <span className="font-mono font-bold">{selectedCertificate.id}</span></div>
-              <div><strong>Permit Type:</strong> {selectedCertificate.type}</div>
-              <div><strong>Beneficiary Company:</strong> {selectedCertificate.company}</div>
-              <div><strong>CAC RC Number:</strong> <span className="font-mono">{selectedCertificate.rcNumber}</span></div>
-              <div><strong>FIRS Tax TIN:</strong> <span className="font-mono">{selectedCertificate.tin}</span></div>
-              <div><strong>Origin Country:</strong> {selectedCertificate.origin}</div>
-              <div className="col-span-2"><strong>Product Description:</strong> {selectedCertificate.product}</div>
-            </div>
-
-            <div className="border-t border-b py-3 flex justify-between items-center text-xs text-gray-600">
-              <div>
-                <p className="font-bold text-green-800">MULTIDIMENSIONAL AGENCY VALIDATION:</p>
-                <p>✓ FIRS Tax Verified | ✓ Remita TSA Paid | ✓ NCS Cleared | ✓ NAFDAC Inspected</p>
-              </div>
-              <div className="text-right font-mono text-[10px] bg-gray-100 p-2 rounded">
-                DIGITAL HASH: SHA-256-NSW-2026-SECURE
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <button onClick={() => window.print()} className="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded text-xs font-bold">Print Certificate</button>
-              <button onClick={() => setSelectedCertificate(null)} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-xs font-bold">Close Window</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
