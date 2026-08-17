@@ -1,40 +1,86 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('trader');
+  const [currentUser, setCurrentUser] = useState(null); // 'trader', 'agency', 'admin'
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([
     { id: 1, text: "Import Permit NSW-2026-0001 approved by Customs.", time: "10m ago", read: false },
     { id: 2, text: "Additional documentation requested for NSW-2026-0002.", time: "1h ago", read: false },
-    { id: 3, text: "New application submitted successfully.", time: "2h ago", read: true }
   ]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const markAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-  };
+  // If not logged in, show the clean role-selection login screen
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-emerald-900 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center border-t-8 border-emerald-600">
+          
+          {/* Prominent Official Logo */}
+          <div className="flex justify-center mb-4">
+            <img src="/logo.png" alt="National Single Window Logo" className="h-16 w-auto object-contain" />
+          </div>
 
+          <h1 className="text-2xl font-extrabold text-emerald-900 tracking-tight">National Single Window</h1>
+          <p className="text-xs text-gray-500 mt-1 mb-8 uppercase tracking-widest font-semibold">Nigeria's Premier Trade Platform</p>
+
+          <div className="space-y-3 text-left">
+            <label className="block text-xs font-bold text-gray-700 uppercase">Select Role to Sign In Instantly:</label>
+            
+            <button 
+              onClick={() => setCurrentUser('trader')}
+              className="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold p-3 rounded-xl transition flex justify-between items-center text-sm"
+            >
+              <span>Trader Portal (ABC Mfg)</span>
+              <span className="text-xs bg-emerald-200 text-emerald-800 px-2 py-1 rounded">Access Import/Export</span>
+            </button>
+
+            <button 
+              onClick={() => setCurrentUser('agency')}
+              className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 font-bold p-3 rounded-xl transition flex justify-between items-center text-sm"
+            >
+              <span>Government Agency Officer</span>
+              <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">Customs / NAFDAC</span>
+            </button>
+
+            <button 
+              onClick={() => setCurrentUser('admin')}
+              className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-300 text-gray-900 font-bold p-3 rounded-xl transition flex justify-between items-center text-sm"
+            >
+              <span>System Administrator</span>
+              <span className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">Metrics & Controls</span>
+            </button>
+          </div>
+
+          <div className="mt-8 text-xs text-gray-400">
+            Secure Gateway • Federal Republic of Nigeria
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main Dashboard View once logged in
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
       {/* Top Navigation Bar with Green & White Theme & Notification Bell */}
-      <header className="bg-emerald-800 text-white shadow-md sticky top-0 z-50">
+      <header className="bg-emerald-900 text-white shadow-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <img src="/logo.png" alt="NSW Logo" className="h-10 w-10 object-contain bg-white rounded p-1" />
+            <img src="/logo.png" alt="NSW Logo" className="h-12 w-auto object-contain bg-white rounded p-1" />
             <div>
-              <h1 className="text-lg font-bold tracking-wide">National Single Window (NSW)</h1>
-              <p className="text-xs text-emerald-200">Federal Republic of Nigeria - Trade Portal</p>
+              <h1 className="text-base font-bold tracking-wide">National Single Window (NSW)</h1>
+              <p className="text-xs text-emerald-300">Nigeria's Premier Trade Platform</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-6 relative">
+          <div className="flex items-center space-x-4 relative">
             {/* Notification Bell */}
             <div className="relative">
               <button 
-                onClick={() => { setShowNotifications(!showNotifications); markAsRead(); }}
-                className="relative p-2 rounded-full hover:bg-emerald-700 transition focus:outline-none"
+                onClick={() => { setShowNotifications(!showNotifications); setNotifications(notifications.map(n => ({...n, read: true}))); }}
+                className="relative p-2 rounded-full hover:bg-emerald-800 transition focus:outline-none"
                 aria-label="Notifications"
               >
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -51,12 +97,12 @@ export default function Home() {
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2 text-gray-800 z-50">
                   <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
-                    <span className="font-semibold text-sm">Notifications</span>
-                    <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">System Live</span>
+                    <span className="font-semibold text-sm">System Notifications</span>
+                    <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Live</span>
                   </div>
                   <div className="max-h-64 overflow-y-auto">
                     {notifications.map((notif) => (
-                      <div key={notif.id} className={`px-4 py-3 border-b border-gray-50 hover:bg-gray-50 text-xs ${!notif.read ? 'bg-emerald-50/40' : ''}`}>
+                      <div key={notif.id} className="px-4 py-3 border-b border-gray-50 hover:bg-gray-50 text-xs">
                         <p className="font-medium text-gray-900">{notif.text}</p>
                         <span className="text-gray-400 mt-1 block">{notif.time}</span>
                       </div>
@@ -66,8 +112,14 @@ export default function Home() {
               )}
             </div>
 
-            <div className="text-sm font-medium bg-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-600">
-              Role: <span className="capitalize font-bold">{activeTab}</span>
+            <div className="text-xs font-medium bg-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-700 flex items-center space-x-2">
+              <span>Role: <strong className="uppercase">{currentUser}</strong></span>
+              <button 
+                onClick={() => setCurrentUser(null)} 
+                className="ml-2 text-emerald-300 hover:text-white underline text-[10px]"
+              >
+                Switch Role
+              </button>
             </div>
           </div>
         </div>
@@ -78,7 +130,7 @@ export default function Home() {
         
         {/* Functional Process Flowbox */}
         <section className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-800 mb-4">Core Workflow Process</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-4">Core Workflow Process</h2>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
             <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
               <span className="block font-bold text-emerald-800 text-sm">1. Trader</span>
@@ -103,34 +155,12 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Role Switcher Tabs */}
-        <div className="flex space-x-2 mb-6 border-b border-gray-200 pb-2">
-          <button 
-            onClick={() => setActiveTab('trader')} 
-            className={`px-4 py-2 font-semibold text-sm rounded-lg transition ${activeTab === 'trader' ? 'bg-emerald-800 text-white shadow' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
-          >
-            Trader Portal (ABC Mfg)
-          </button>
-          <button 
-            onClick={() => setActiveTab('agency')} 
-            className={`px-4 py-2 font-semibold text-sm rounded-lg transition ${activeTab === 'agency' ? 'bg-emerald-800 text-white shadow' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
-          >
-            Government Agency (Customs/NAFDAC)
-          </button>
-          <button 
-            onClick={() => setActiveTab('admin')} 
-            className={`px-4 py-2 font-semibold text-sm rounded-lg transition ${activeTab === 'admin' ? 'bg-emerald-800 text-white shadow' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
-          >
-            Administrator Reporting
-          </button>
-        </div>
-
         {/* Dynamic Role Views */}
-        {activeTab === 'trader' && (
+        {currentUser === 'trader' && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Trader Dashboard - Applications</h3>
-              <button className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
+              <h3 className="text-lg font-bold text-gray-900">Trader Dashboard - ABC Manufacturing Ltd</h3>
+              <button className="bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-800 transition">
                 + New Application
               </button>
             </div>
@@ -161,9 +191,9 @@ export default function Home() {
           </div>
         )}
 
-        {activeTab === 'agency' && (
+        {currentUser === 'agency' && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Agency Review Console (Customs & NAFDAC)</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Government Agency Review Console (Customs & NAFDAC)</h3>
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase">
@@ -188,7 +218,7 @@ export default function Home() {
           </div>
         )}
 
-        {activeTab === 'admin' && (
+        {currentUser === 'admin' && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-6">System Activity & Metrics Overview</h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
