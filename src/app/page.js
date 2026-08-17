@@ -2,25 +2,90 @@
 import { useState } from 'react';
 
 export default function Home() {
-  const [session, setSession] = useState(null); // { role: 'trader' | 'agency' | 'admin', name: string, email: string }
+  const [session, setSession] = useState(null); 
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
+  
+  // Dynamic Application State
+  const [applications, setApplications] = useState([
+    { id: 'NSW-2026-0001', company: 'ABC Manufacturing Ltd', type: 'Import Permit', product: 'Industrial Machine', status: 'Pending Review' },
+    { id: 'NSW-2026-0002', company: 'ABC Manufacturing Ltd', type: 'Export License', product: 'Raw Cashew Nuts', status: 'Approved' },
+    { id: 'NSW-2026-0003', company: 'Global Trade Co', type: 'Import Permit', product: 'Chemical Solvents', status: 'Pending Review' }
+  ]);
+
   const [notifications, setNotifications] = useState([
-    { id: 1, text: "Import Permit NSW-2026-0001 approved by Customs.", time: "10m ago", read: false },
-    { id: 2, text: "Additional documentation requested for NSW-2026-0002.", time: "1h ago", read: false },
+    { id: 1, text: "System maintenance scheduled for 00:00 WAT.", time: "2h ago", read: false }
   ]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const handleLogin = (roleType) => {
-    if (roleType === 'trader') {
+  // Dynamic Metrics Calculation
+  const totalApps = applications.length;
+  const approvedApps = applications.filter(a => a.status === 'Approved').length;
+  const pendingApps = applications.filter(a => a.status === 'Pending Review').length;
+  const queriedApps = applications.filter(a => a.status === 'Queried').length;
+
+  const handleSecureLogin = (e) => {
+    e.preventDefault();
+    setLoginError('');
+
+    const email = emailInput.trim().toLowerCase();
+    const pwd = passwordInput.trim();
+
+    if (email === 'trader@abc.com' && pwd === 'password123') {
       setSession({ role: 'trader', name: 'ABC Manufacturing Ltd', email: 'trader@abc.com' });
-    } else if (roleType === 'agency') {
+    } else if (email === 'customs@nsw.gov.ng' && pwd === 'secure2026') {
       setSession({ role: 'agency', name: 'Customs Officer (J. Adebayo)', email: 'customs@nsw.gov.ng' });
-    } else if (roleType === 'admin') {
+    } else if (email === 'admin@nsw.gov.ng' && pwd === 'admin2026') {
       setSession({ role: 'admin', name: 'Platform Administrator', email: 'admin@nsw.gov.ng' });
+    } else {
+      setLoginError('Access Denied: Invalid official email or password.');
     }
+  };
+
+  const handleNewApplication = () => {
+    const newId = `NSW-2026-000${applications.length + 1}`;
+    const newApp = {
+      id: newId,
+      company: session.name,
+      type: 'Import Permit',
+      product: 'New Equipment',
+      status: 'Pending Review'
+    };
+    setApplications([...applications, newApp]);
+    
+    const newNotif = {
+      id: Date.now(),
+      text: `Application ${newId} submitted successfully.`,
+      time: 'Just now',
+      read: false
+    };
+    setNotifications([newNotif, ...notifications]);
+  };
+
+  const handleAgencyAction = (appId, action) => {
+    const updatedStatus = action === 'Approve' ? 'Approved' : 'Queried';
+    
+    const updatedApps = applications.map(app => 
+      app.id === appId ? { ...app, status: updatedStatus } : app
+    );
+    setApplications(updatedApps);
+
+    const newNotif = {
+      id: Date.now(),
+      text: `Application ${appId} has been ${updatedStatus.toLowerCase()} by Customs.`,
+      time: 'Just now',
+      read: false
+    };
+    setNotifications([newNotif, ...notifications]);
+  };
+
+  const getStatusBadge = (status) => {
+    if (status === 'Approved') return <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-semibold">Approved</span>;
+    if (status === 'Queried') return <span className="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-semibold">Queried</span>;
+    return <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-semibold">Pending Review</span>;
   };
 
   // Secure Enterprise Login View
@@ -35,7 +100,13 @@ export default function Home() {
           <h1 className="text-2xl font-extrabold text-emerald-900 text-center tracking-tight">National Single Window</h1>
           <p className="text-xs text-gray-500 text-center mt-1 mb-6 uppercase tracking-widest font-semibold">Enterprise Trade Portal (Nigeria)</p>
 
-          <form onSubmit={(e) => { e.preventDefault(); handleLogin('trader'); }} className="space-y-4">
+          {loginError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded text-center">
+              {loginError}
+            </div>
+          )}
+
+          <form onSubmit={handleSecureLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Official Email Address</label>
               <input 
@@ -68,28 +139,11 @@ export default function Home() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <p className="text-[11px] text-gray-500 text-center mb-3 font-semibold uppercase tracking-wider">Quick Demo Access (Supervisor Review)</p>
-            <div className="grid grid-cols-3 gap-2">
-              <button 
-                onClick={() => handleLogin('trader')}
-                className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold py-2 px-2 rounded border border-emerald-200 transition"
-              >
-                Trader
-              </button>
-              <button 
-                onClick={() => handleLogin('agency')}
-                className="bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-bold py-2 px-2 rounded border border-blue-200 transition"
-              >
-                Agency
-              </button>
-              <button 
-                onClick={() => handleLogin('admin')}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-2 rounded border border-gray-300 transition"
-              >
-                Admin
-              </button>
-            </div>
+          <div className="mt-8 pt-4 border-t border-gray-100 text-[10px] text-gray-400 text-center">
+            <p className="font-bold uppercase mb-1">System Demo Credentials:</p>
+            <p>Trader: trader@abc.com / password123</p>
+            <p>Agency: customs@nsw.gov.ng / secure2026</p>
+            <p>Admin: admin@nsw.gov.ng / admin2026</p>
           </div>
         </div>
       </div>
@@ -110,12 +164,10 @@ export default function Home() {
           </div>
 
           <div className="flex items-center space-x-4 relative">
-            {/* Notification Bell */}
             <div className="relative">
               <button 
                 onClick={() => { setShowNotifications(!showNotifications); setNotifications(notifications.map(n => ({...n, read: true}))); }}
                 className="relative p-2 rounded-full hover:bg-emerald-800 transition focus:outline-none"
-                aria-label="Notifications"
               >
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
@@ -148,7 +200,7 @@ export default function Home() {
             <div className="text-xs font-medium bg-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-700 flex items-center space-x-3">
               <div>
                 <span className="block text-[10px] text-emerald-300 uppercase">Authenticated as</span>
-                <span className="font-bold uppercase">{session.role} ({session.email})</span>
+                <span className="font-bold uppercase">{session.role}</span>
               </div>
               <button 
                 onClick={() => setSession(null)} 
@@ -191,8 +243,11 @@ export default function Home() {
         {session.role === 'trader' && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Trader Dashboard - ABC Manufacturing Ltd</h3>
-              <button className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition">
+              <h3 className="text-lg font-bold text-gray-900">Trader Dashboard - {session.name}</h3>
+              <button 
+                onClick={handleNewApplication}
+                className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition"
+              >
                 + New Application
               </button>
             </div>
@@ -206,18 +261,14 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody className="text-sm">
-                <tr className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium">NSW-2026-0001</td>
-                  <td className="py-3 px-4">Import Permit</td>
-                  <td className="py-3 px-4">Industrial Machine</td>
-                  <td className="py-3 px-4"><span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-semibold">Pending Review</span></td>
-                </tr>
-                <tr className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium">NSW-2026-0002</td>
-                  <td className="py-3 px-4">Export License</td>
-                  <td className="py-3 px-4">Raw Cashew Nuts</td>
-                  <td className="py-3 px-4"><span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-semibold">Approved</span></td>
-                </tr>
+                {applications.filter(app => app.company === 'ABC Manufacturing Ltd').map(app => (
+                  <tr key={app.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4 font-medium">{app.id}</td>
+                    <td className="py-3 px-4">{app.type}</td>
+                    <td className="py-3 px-4">{app.product}</td>
+                    <td className="py-3 px-4">{getStatusBadge(app.status)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -231,20 +282,28 @@ export default function Home() {
                 <tr className="border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase">
                   <th className="py-3 px-4">Application ID</th>
                   <th className="py-3 px-4">Company</th>
-                  <th className="py-3 px-4">Customs Status</th>
+                  <th className="py-3 px-4">Current Status</th>
                   <th className="py-3 px-4">Action</th>
                 </tr>
               </thead>
               <tbody className="text-sm">
-                <tr className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium">NSW-2026-0001</td>
-                  <td className="py-3 px-4">ABC Manufacturing Ltd</td>
-                  <td className="py-3 px-4"><span className="text-blue-600 font-medium">Under Review</span></td>
-                  <td className="py-3 px-4 space-x-2">
-                    <button className="bg-green-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-green-700">Approve</button>
-                    <button className="bg-amber-500 text-white px-3 py-1 rounded text-xs font-medium hover:bg-amber-600">Query</button>
-                  </td>
-                </tr>
+                {applications.map(app => (
+                  <tr key={app.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4 font-medium">{app.id}</td>
+                    <td className="py-3 px-4">{app.company}</td>
+                    <td className="py-3 px-4">{getStatusBadge(app.status)}</td>
+                    <td className="py-3 px-4 space-x-2">
+                      {app.status === 'Pending Review' ? (
+                        <>
+                          <button onClick={() => handleAgencyAction(app.id, 'Approve')} className="bg-green-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-green-700">Approve</button>
+                          <button onClick={() => handleAgencyAction(app.id, 'Query')} className="bg-amber-500 text-white px-3 py-1 rounded text-xs font-medium hover:bg-amber-600">Query</button>
+                        </>
+                      ) : (
+                        <span className="text-gray-400 text-xs italic">Action Completed</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -256,19 +315,19 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
                 <span className="text-xs text-emerald-700 font-semibold uppercase">Total Applications</span>
-                <h4 className="text-2xl font-extrabold text-emerald-900 mt-1">248</h4>
+                <h4 className="text-2xl font-extrabold text-emerald-900 mt-1">{totalApps}</h4>
               </div>
               <div className="p-4 bg-green-50 rounded-xl border border-green-100">
                 <span className="text-xs text-green-700 font-semibold uppercase">Approved</span>
-                <h4 className="text-2xl font-extrabold text-green-900 mt-1">192</h4>
+                <h4 className="text-2xl font-extrabold text-green-900 mt-1">{approvedApps}</h4>
               </div>
               <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
                 <span className="text-xs text-yellow-700 font-semibold uppercase">Pending Review</span>
-                <h4 className="text-2xl font-extrabold text-yellow-900 mt-1">42</h4>
+                <h4 className="text-2xl font-extrabold text-yellow-900 mt-1">{pendingApps}</h4>
               </div>
               <div className="p-4 bg-red-50 rounded-xl border border-red-100">
                 <span className="text-xs text-red-700 font-semibold uppercase">Rejected / Queried</span>
-                <h4 className="text-2xl font-extrabold text-red-900 mt-1">14</h4>
+                <h4 className="text-2xl font-extrabold text-red-900 mt-1">{queriedApps}</h4>
               </div>
             </div>
           </div>
