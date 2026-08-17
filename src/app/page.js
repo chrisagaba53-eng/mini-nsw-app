@@ -9,6 +9,7 @@ export default function Home() {
   const [loginError, setLoginError] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedAppDocs, setSelectedAppDocs] = useState(null); // State for Document Modal
   
   // Dynamic Application State with Default Data
   const [applications, setApplications] = useState([
@@ -120,7 +121,6 @@ export default function Home() {
     return <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-semibold">Pending Review</span>;
   };
 
-  // Prevent hydration mismatch rendering issues
   if (!isClient) return null;
 
   // Secure Enterprise Login View
@@ -350,10 +350,16 @@ export default function Home() {
                     <td className="py-3 px-4">{app.company}</td>
                     <td className="py-3 px-4">{getStatusBadge(app.status)}</td>
                     <td className="py-3 px-4 space-x-2">
+                      <button 
+                        onClick={() => setSelectedAppDocs(app)} 
+                        className="bg-blue-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-blue-700 shadow-sm transition"
+                      >
+                        View Docs
+                      </button>
                       {app.status === 'Pending Review' ? (
                         <>
-                          <button onClick={() => handleAgencyAction(app.id, 'Approve')} className="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-green-700 shadow-sm transition">Approve</button>
-                          <button onClick={() => handleAgencyAction(app.id, 'Query')} className="bg-red-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-red-700 shadow-sm transition">Query</button>
+                          <button onClick={() => handleAgencyAction(app.id, 'Approve')} className="bg-green-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-green-700 shadow-sm transition">Approve</button>
+                          <button onClick={() => handleAgencyAction(app.id, 'Query')} className="bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-red-700 shadow-sm transition">Query</button>
                         </>
                       ) : (
                         <span className="text-gray-400 text-xs italic font-medium">Completed</span>
@@ -390,6 +396,37 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* Document Verification Modal */}
+      {selectedAppDocs && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 border-t-8 border-emerald-700">
+            <div className="flex justify-between items-center mb-4 border-b pb-2">
+              <h4 className="font-bold text-gray-900 text-base">Document Verification: {selectedAppDocs.id}</h4>
+              <button onClick={() => setSelectedAppDocs(null)} className="text-gray-500 hover:text-gray-700 font-bold text-lg">×</button>
+            </div>
+            <div className="space-y-3 text-xs text-gray-700 mb-6">
+              <p><strong className="text-gray-900">Applicant Company:</strong> {selectedAppDocs.company}</p>
+              <p><strong className="text-gray-900">Application Type:</strong> {selectedAppDocs.type}</p>
+              <p><strong className="text-gray-900">Declared Product:</strong> {selectedAppDocs.product}</p>
+              <p><strong className="text-gray-900">Form M Reference:</strong> NG-FM-2026-98421</p>
+              <p><strong className="text-gray-900">Bill of Lading:</strong> BL-99281-Abuja</p>
+              <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                <span className="font-semibold text-emerald-800 block mb-1">Compliance Check Result:</span>
+                <p className="text-gray-600">All electronic signatures and trade clearances align with official federal regulatory data.</p>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button 
+                onClick={() => setSelectedAppDocs(null)} 
+                className="bg-emerald-800 text-white px-4 py-2 rounded text-xs font-bold hover:bg-emerald-900 transition"
+              >
+                Close Window
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
