@@ -10,20 +10,15 @@ export default function Home() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Dashboard Filter State
   const [activeFilter, setActiveFilter] = useState('All');
-  
-  // Selected Application for OPay-style Flowbox Modal
   const [trackedApp, setTrackedApp] = useState(null);
   
-  // New Application Modal State
   const [showNewAppModal, setShowNewAppModal] = useState(false);
   const [newAppType, setNewAppType] = useState('Import Permit');
   const [newAppProduct, setNewAppProduct] = useState('');
   const [newAppQuantity, setNewAppQuantity] = useState('');
   const [newAppHsCode, setNewAppHsCode] = useState('');
 
-  // Admin Control States
   const [gatewayStatus, setGatewayStatus] = useState('Operational');
   const [systemUsers, setSystemUsers] = useState([
     { id: 1, name: 'ABC Manufacturing Ltd', email: 'trader@abc.com', role: 'Trader', status: 'Active' },
@@ -37,7 +32,6 @@ export default function Home() {
     { id: 2, action: 'Customs clearance processed', role: 'AGENCY', time: '09:05 WAT' }
   ]);
   
-  // Adjusted Statuses to match Supervisor Sketch: 'Pending', 'Approved', 'Denied'
   const [applications, setApplications] = useState([
     { 
       id: 'NSW-2026-0001', 
@@ -97,11 +91,10 @@ export default function Home() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Filter Logic and Metric Calculations
   const getRoleApplications = () => {
     if (!session) return [];
     if (session.role === 'trader') return applications.filter(app => app.company === session.name || app.company === 'ABC Manufacturing Ltd');
-    return applications; // Agency and Admin see all
+    return applications; 
   };
 
   const roleApps = getRoleApplications();
@@ -168,11 +161,11 @@ export default function Home() {
     setNewAppQuantity('');
     setNewAppHsCode('');
     setShowNewAppModal(false);
-    setActiveFilter('All'); // Reset filter to show new item
+    setActiveFilter('All');
   };
 
   const handleAgencyAction = (appId, action) => {
-    const updatedStatus = action; // 'Approved' or 'Denied'
+    const updatedStatus = action; 
     const updatedApps = applications.map(app => 
       app.id === appId ? { ...app, status: updatedStatus } : app
     );
@@ -198,11 +191,6 @@ export default function Home() {
     setAuditLogs([{ id: Date.now(), action: `Gateway status changed to ${nextStatus}`, role: 'ADMIN', time: 'Just now' }, ...auditLogs]);
   };
 
-  const handleApproveUser = (userId) => {
-    setSystemUsers(systemUsers.map(u => u.id === userId ? { ...u, status: 'Active' } : u));
-    setAuditLogs([{ id: Date.now(), action: `User account ID ${userId} approved by Admin`, role: 'ADMIN', time: 'Just now' }, ...auditLogs]);
-  };
-
   const handleSendBroadcast = (e) => {
     e.preventDefault();
     if (!broadcastMessage.trim()) return;
@@ -220,7 +208,6 @@ export default function Home() {
 
   if (!isClient) return null;
 
-  // Unauthenticated Login
   if (!session) {
     return (
       <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
@@ -281,7 +268,6 @@ export default function Home() {
     );
   }
 
-  // Dashboard Metrics & Filter Component (Reusable for Trader & Agency)
   const FilterDashboard = () => (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <button 
@@ -382,7 +368,6 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         
-        {/* TRADER VIEW */}
         {session.role === 'trader' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -462,7 +447,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* AGENCY VIEW */}
         {session.role === 'agency' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -539,7 +523,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* ADMIN VIEW */}
         {session.role === 'admin' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -558,7 +541,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Global Metric Filters for Admin */}
             <FilterDashboard />
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
@@ -627,7 +609,6 @@ export default function Home() {
         )}
       </main>
 
-      {/* OPAY-STYLE STEP-BY-STEP PROCESS FLOWBOX MODAL */}
       {trackedApp && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100">
@@ -643,7 +624,6 @@ export default function Home() {
             <div className="p-6 bg-gray-50 max-h-[75vh] overflow-y-auto">
               <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-0">
                 
-                {/* STEP 1 */}
                 <div className="relative pl-8 pb-8">
                   <div className="absolute left-3.5 top-6 bottom-0 w-0.5 bg-emerald-500"></div>
                   <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
@@ -654,17 +634,15 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* STEP 2 */}
                 <div className="relative pl-8 pb-8">
-                  <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${trackedApp.status !== 'Pending' ? 'bg-emerald-500' : 'bg-emerald-500'}`}></div>
+                  <div className="absolute left-3.5 top-6 bottom-0 w-0.5 bg-emerald-500"></div>
                   <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
                   <div>
-                    <h5 className="text-sm font-bold text-gray-900">Gateway Data Validation</h5>
-                    <p className="text-xs text-gray-600 mt-0.5">HS Code ({trackedApp.hsCode}) compliance checked</p>
+                    <h5 className="text-sm font-bold text-gray-900">Automated Compliance Check</h5>
+                    <p className="text-xs text-gray-600 mt-0.5">HS Code ({trackedApp.hsCode}) tariff validation passed</p>
                   </div>
                 </div>
 
-                {/* STEP 3 */}
                 <div className="relative pl-8 pb-8">
                   <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${trackedApp.status === 'Approved' ? 'bg-emerald-500' : trackedApp.status === 'Denied' ? 'bg-red-300' : 'bg-gray-200'}`}></div>
                   {trackedApp.status === 'Pending' ? (
@@ -684,7 +662,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* STEP 4 */}
                 <div className="relative pl-8">
                   {trackedApp.status === 'Approved' ? (
                     <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow ring-4 ring-emerald-100">✓</div>
@@ -719,7 +696,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* NEW APPLICATION MODAL */}
       {showNewAppModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border-t-8 border-emerald-700">
