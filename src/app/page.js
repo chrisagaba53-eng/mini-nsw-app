@@ -225,6 +225,23 @@ export default function Home() {
     alert('Broadcast notification successfully pushed.');
   };
 
+  // ADMIN FUNCTIONS
+  const handleUserStatusChange = (userId, newStatus) => {
+    const updatedUsers = systemUsers.map(user => 
+      user.id === userId ? { ...user, status: newStatus } : user
+    );
+    setSystemUsers(updatedUsers);
+    setAuditLogs([{ id: Date.now(), action: `Admin updated user ID ${userId} to ${newStatus}`, role: 'ADMIN', time: 'Just now' }, ...auditLogs]);
+  };
+
+  const handleForceDeleteApp = (appId) => {
+    const confirmDelete = window.confirm(`CRITICAL ACTION: Are you sure you want to permanently delete application ${appId}?`);
+    if (!confirmDelete) return;
+    
+    setApplications(applications.filter(app => app.id !== appId));
+    setAuditLogs([{ id: Date.now(), action: `Admin forcefully purged application ${appId}`, role: 'ADMIN', time: 'Just now' }, ...auditLogs]);
+  };
+
   if (!isClient) return null;
 
   if (!session) {
@@ -448,7 +465,7 @@ export default function Home() {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                             </svg>
-                            <span>Track Status</span>
+                            <span>Trace Status</span>
                           </button>
                         </td>
                       </tr>
@@ -516,7 +533,7 @@ export default function Home() {
                             onClick={() => setTrackedApp(app)}
                             className="bg-emerald-700 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-emerald-800 transition shadow-sm"
                           >
-                            Flow Box
+                            Audit Flow
                           </button>
                           {isPending(app.status) ? (
                             <>
@@ -574,6 +591,7 @@ export default function Home() {
                       <th className="py-3 px-4">Company</th>
                       <th className="py-3 px-4">Type</th>
                       <th className="py-3 px-4">State</th>
+                      <th className="py-3 px-4">System Override</th>
                     </tr>
                   </thead>
                   <tbody className="text-sm divide-y divide-gray-100 bg-white">
@@ -586,6 +604,57 @@ export default function Home() {
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isApproved(app.status) ? 'bg-green-100 text-green-800' : isDenied(app.status) ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
                             {app.status}
                           </span>
+                        </td>
+                        <td className="py-2 px-4">
+                          <button 
+                            onClick={() => handleForceDeleteApp(app.id)}
+                            className="text-red-600 hover:text-red-800 text-[10px] font-bold uppercase border border-red-200 bg-red-50 hover:bg-red-100 px-2 py-1 rounded transition"
+                          >
+                            Force Purge
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+              <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                  <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Identity & Access Management</h4>
+                  <span className="text-xs text-gray-500 font-medium">Manage Agency & Trader Accounts</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-white border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
+                      <th className="py-3 px-4">User / Entity Name</th>
+                      <th className="py-3 px-4">Role Area</th>
+                      <th className="py-3 px-4">Account Status</th>
+                      <th className="py-3 px-4">Access Controls</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm divide-y divide-gray-100 bg-white">
+                    {systemUsers.map(user => (
+                      <tr key={user.id}>
+                        <td className="py-3 px-4">
+                          <span className="block font-medium text-gray-900">{user.name}</span>
+                          <span className="block text-xs text-gray-500">{user.email}</span>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-xs">{user.role.toUpperCase()}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${user.status === 'Active' ? 'bg-green-100 text-green-800' : user.status === 'Suspended' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {user.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 space-x-2">
+                          {user.status !== 'Active' && (
+                            <button onClick={() => handleUserStatusChange(user.id, 'Active')} className="bg-emerald-600 text-white px-2 py-1 rounded text-[11px] font-bold hover:bg-emerald-700 transition">Authorize</button>
+                          )}
+                          {user.status !== 'Suspended' && (
+                            <button onClick={() => handleUserStatusChange(user.id, 'Suspended')} className="bg-gray-800 text-white px-2 py-1 rounded text-[11px] font-bold hover:bg-gray-900 transition">Suspend</button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -696,6 +765,19 @@ export default function Home() {
                     <p className="text-xs text-gray-500 mt-0.5">
                       {isApproved(trackedApp.status) ? 'Digital Permit released successfully' : isDenied(trackedApp.status) ? 'Application rejected' : 'Awaiting final state'}
                     </p>
+                    
+                    {isApproved(trackedApp.status) && (
+                      <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex justify-between items-center">
+                        <div>
+                          <span className="block text-xs font-bold text-emerald-900">Official E-Permit Generated</span>
+                          <span className="block text-[10px] text-emerald-700 font-mono">{trackedApp.id}-DOC</span>
+                        </div>
+                        <button onClick={() => alert(`DOWNLOADING E-PERMIT\n\nPermit ID: ${trackedApp.id}-DOC\nCompany: ${trackedApp.company}\nAuthorized by: National Single Window (Nigeria)\n\n(In production, this downloads a signed PDF).`)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center shadow-sm">
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                          Download PDF
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
