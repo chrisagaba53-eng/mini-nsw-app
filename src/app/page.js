@@ -1,842 +1,749 @@
-"use client";
-import { useState, useEffect } from 'react';
+'use client';
+import React, { useState } from 'react';
 
-export default function Home() {
-  const [isClient, setIsClient] = useState(false);
-  const [session, setSession] = useState(null); 
-  const [emailInput, setEmailInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
+export default function EnterpriseTradePortal() {
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState(null); // { email, role, companyName }
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [trackedApp, setTrackedApp] = useState(null);
-  
-  const [showNewAppModal, setShowNewAppModal] = useState(false);
-  const [newAppType, setNewAppType] = useState('Import Permit');
-  const [newAppProduct, setNewAppProduct] = useState('');
-  const [newAppQuantity, setNewAppQuantity] = useState('');
-  const [newAppHsCode, setNewAppHsCode] = useState('');
 
-  const [gatewayStatus, setGatewayStatus] = useState('Operational');
-  const [systemUsers, setSystemUsers] = useState([
-    { id: 1, name: 'ABC Manufacturing Ltd', email: 'trader@abc.com', role: 'Trader', status: 'Active' },
-    { id: 2, name: 'Customs Officer J. Adebayo', email: 'customs@nsw.gov.ng', role: 'Agency', status: 'Active' },
-    { id: 3, name: 'Global Trade Co', email: 'trader2@global.com', role: 'Trader', status: 'Pending Approval' }
-  ]);
+  // Portal Global State
+  const [gatewayOperational, setGatewayOperational] = useState(true);
   const [broadcastMessage, setBroadcastMessage] = useState('');
-
-  const [auditLogs, setAuditLogs] = useState([
-    { id: 1, action: 'User authentication verified', role: 'TRADER', time: '08:30 WAT' },
-    { id: 2, action: 'Customs clearance processed', role: 'AGENCY', time: '09:05 WAT' }
-  ]);
+  const [activeBroadcast, setActiveBroadcast] = useState('System maintenance scheduled for Friday 00:00 - 04:00 WAT.');
   
+  // Applications Store
   const [applications, setApplications] = useState([
-    { 
-      id: 'NSW-2026-0001', 
-      company: 'ABC Manufacturing Ltd', 
-      type: 'Import Permit', 
-      product: 'Industrial Machine Generator', 
-      quantity: '10 Units', 
-      hsCode: '8479.90.00', 
-      status: 'Pending',
-      submittedAt: '17 Aug 2026, 08:30 WAT'
+    {
+      id: 'NSW-2026-0001',
+      company: 'Global Trade Co',
+      product: 'Industrial Machine',
+      quantity: '10 Units',
+      type: 'Import Permit',
+      status: 'APPROVED',
+      denialReason: '',
+      documentName: 'invoice_manifest.pdf',
+      auditTrail: [
+        { action: 'Application submitted', time: '2026-08-18 09:15', actor: 'Global Trade Co' },
+        { action: 'Document Completeness Check passed', time: '2026-08-18 09:20', actor: 'System' },
+        { action: 'Regulatory Agency Review approved', time: '2026-08-18 10:00', actor: 'Customs Officer J. Adebayo' },
+        { action: 'Final Decision released', time: '2026-08-18 10:05', actor: 'System' }
+      ]
     },
-    { 
-      id: 'NSW-2026-0002', 
-      company: 'ABC Manufacturing Ltd', 
-      type: 'Export License', 
-      product: 'Raw Cashew Nuts', 
-      quantity: '50 Metric Tons', 
-      hsCode: '0801.31.00', 
-      status: 'Approved',
-      submittedAt: '16 Aug 2026, 11:15 WAT'
+    {
+      id: 'NSW-2026-0002',
+      company: 'Apex Agro Allied',
+      product: 'Raw Cashew Nuts',
+      quantity: '50 Metric Tons',
+      type: 'Export License',
+      status: 'PENDING',
+      denialReason: '',
+      documentName: 'phyto_cert.pdf',
+      auditTrail: [
+        { action: 'Application submitted', time: '2026-08-18 11:00', actor: 'Apex Agro Allied' }
+      ]
     },
-    { 
-      id: 'NSW-2026-0003', 
-      company: 'Global Trade Co', 
-      type: 'Import Permit', 
-      product: 'Chemical Solvents', 
-      quantity: '500 Litres', 
-      hsCode: '3824.99.99', 
-      status: 'Denied',
-      submittedAt: '17 Aug 2026, 09:40 WAT'
-    },
-    { 
-      id: 'NSW-2026-0005', 
-      company: 'ABC Manufacturing Ltd', 
-      type: 'Import Permit', 
-      product: 'Heavy Industrial Generator', 
-      quantity: '100 Metric Tons', 
-      hsCode: '8502.11.00', 
-      status: 'Pending',
-      submittedAt: '18 Aug 2026, 09:00 WAT'
+    {
+      id: 'NSW-2026-0003',
+      company: 'Heavy Industries Ltd',
+      product: 'Heavy Industrial Generator',
+      quantity: '2 Units',
+      type: 'Import Permit',
+      status: 'DENIED',
+      denialReason: 'Denied: Tax Clearance Certificate Expired',
+      documentName: 'expired_tax.pdf',
+      auditTrail: [
+        { action: 'Application submitted', time: '2026-08-18 08:30', actor: 'Heavy Industries Ltd' },
+        { action: 'Document Completeness Check failed: Tax Clearance Expired', time: '2026-08-18 08:45', actor: 'Agency Officer' }
+      ]
     }
   ]);
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: "System maintenance scheduled for 00:00 WAT.", time: "2h ago", read: false }
+  // User Accounts Directory for IAM
+  const [usersList, setUsersList] = useState([
+    { name: 'Global Trade Co', email: 'trader@abc.com', role: 'TRADER', status: 'ACTIVE' },
+    { name: 'Customs Officer J. Adebayo', email: 'customs@nsw.gov.ng', role: 'AGENCY', status: 'ACTIVE' },
+    { name: 'Platform Administrator', email: 'admin@nsw.gov.ng', role: 'ADMIN', status: 'ACTIVE' }
   ]);
 
-  useEffect(() => {
-    setIsClient(true);
-    const savedApps = localStorage.getItem('nsw_applications');
-    if (savedApps) setApplications(JSON.parse(savedApps));
-    
-    const savedNotifs = localStorage.getItem('nsw_notifications');
-    if (savedNotifs) setNotifications(JSON.parse(savedNotifs));
+  // UI Modals & Navigation State
+  const [showNewAppModal, setShowNewAppModal] = useState(false);
+  const [selectedAppForTrace, setSelectedAppForTrace] = useState(null);
+  const [selectedAppForPermit, setSelectedAppForPermit] = useState(null);
+  const [auditSearchQuery, setAuditSearchQuery] = useState('');
 
-    const savedUsers = localStorage.getItem('nsw_users');
-    if (savedUsers) setSystemUsers(JSON.parse(savedUsers));
-  }, []);
+  // New Application Form State (No HS Code, includes Dynamic Company & File Upload)
+  const [newAppType, setNewAppType] = useState('Import Permit');
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [newProduct, setNewProduct] = useState('');
+  const [newQuantity, setNewQuantity] = useState('');
+  const [newFile, setNewFile] = useState(null);
+  const [formError, setFormError] = useState('');
 
-  useEffect(() => {
-    if (isClient) {
-      localStorage.setItem('nsw_applications', JSON.stringify(applications));
-      localStorage.setItem('nsw_notifications', JSON.stringify(notifications));
-      localStorage.setItem('nsw_users', JSON.stringify(systemUsers));
-    }
-  }, [applications, notifications, systemUsers, isClient]);
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const isPending = (status) => status && (status.toLowerCase().includes('pending') || status.toLowerCase().includes('review'));
-  const isApproved = (status) => status && status.toLowerCase().includes('approved');
-  const isDenied = (status) => status && (status.toLowerCase().includes('denied') || status.toLowerCase().includes('rejected'));
-
-  const getRoleApplications = () => {
-    if (!session) return [];
-    if (session.role === 'trader') return applications.filter(app => app.company === session.name || app.company === 'ABC Manufacturing Ltd');
-    return applications; 
-  };
-
-  const roleApps = getRoleApplications();
-  const totalApps = roleApps.length;
-  const approvedApps = roleApps.filter(a => isApproved(a.status)).length;
-  const deniedApps = roleApps.filter(a => isDenied(a.status)).length;
-  const pendingApps = roleApps.filter(a => isPending(a.status)).length;
-
-  const displayedApps = roleApps.filter(app => {
-    const matchesSearch = app.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          app.product.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    let matchesFilter = true;
-    if (activeFilter === 'Approved') matchesFilter = isApproved(app.status);
-    else if (activeFilter === 'Denied') matchesFilter = isDenied(app.status);
-    else if (activeFilter === 'Pending') matchesFilter = isPending(app.status);
-
-    return matchesSearch && matchesFilter;
-  });
-
-  const handleSecureLogin = (e) => {
+  // Handle Login
+  const handleLogin = (e) => {
     e.preventDefault();
     setLoginError('');
-    const email = emailInput.trim().toLowerCase();
-    const pwd = passwordInput.trim();
+    const foundUser = usersList.find(u => u.email.toLowerCase() === loginEmail.toLowerCase() && u.status === 'ACTIVE');
+    
+    if (!foundUser) {
+      setLoginError('Invalid credentials or account is suspended.');
+      return;
+    }
 
-    if (email === 'trader@abc.com' && pwd === 'password123') {
-      setSession({ role: 'trader', name: 'ABC Manufacturing Ltd', email: 'trader@abc.com' });
-    } else if (email === 'customs@nsw.gov.ng' && pwd === 'secure2026') {
-      setSession({ role: 'agency', name: 'Customs Officer (J. Adebayo)', email: 'customs@nsw.gov.ng' });
-    } else if (email === 'admin@nsw.gov.ng' && pwd === 'admin2026') {
-      setSession({ role: 'admin', name: 'Platform Administrator', email: 'admin@nsw.gov.ng' });
+    // Assign mock credentials mapping
+    if (loginEmail === 'trader@abc.com' && loginPassword === 'password123') {
+      setCurrentUser({ email: loginEmail, role: 'TRADER', companyName: foundUser.name });
+    } else if (loginEmail === 'customs@nsw.gov.ng' && loginPassword === 'secure2026') {
+      setCurrentUser({ email: loginEmail, role: 'AGENCY', companyName: 'Nigerian Customs Service' });
+    } else if (loginEmail === 'admin@nsw.gov.ng' && loginPassword === 'admin2026') {
+      setCurrentUser({ email: loginEmail, role: 'ADMIN', companyName: 'Platform Administration' });
     } else {
-      setLoginError('Access Denied: Invalid official credentials.');
+      setLoginError('Incorrect password provided.');
     }
   };
 
-  const handleFormSubmitApplication = (e) => {
+  // Handle New Application Submission with File Validation (<5MB)
+  const handleCreateApplication = (e) => {
     e.preventDefault();
-    if (!newAppProduct || !newAppQuantity || !newAppHsCode) return;
+    setFormError('');
+
+    if (!newCompanyName || !newProduct || !newQuantity) {
+      setFormError('Please fill out all required fields.');
+      return;
+    }
+
+    if (newFile) {
+      if (newFile.size > 5 * 1024 * 1024) {
+        setFormError('File size exceeds the 5MB limit.');
+        return;
+      }
+      const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+      if (!validTypes.includes(newFile.type)) {
+        setFormError('Invalid file format. Only PDF, PNG, and JPEG are supported.');
+        return;
+      }
+    } else {
+      setFormError('Please attach a supporting verification document.');
+      return;
+    }
 
     const newId = `NSW-2026-000${applications.length + 1}`;
-    const nowTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' WAT';
-    const nowDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    
-    const newApp = {
+    const newEntry = {
       id: newId,
-      company: session.name,
+      company: newCompanyName,
+      product: newProduct,
+      quantity: newQuantity,
       type: newAppType,
-      product: newAppProduct,
-      quantity: newAppQuantity,
-      hsCode: newAppHsCode,
-      status: 'Pending',
-      submittedAt: `${nowDate}, ${nowTime}`
+      status: 'PENDING',
+      denialReason: '',
+      documentName: newFile.name,
+      auditTrail: [
+        { action: 'Application submitted with document verification', time: new Date().toISOString().slice(0, 16).replace('T', ' '), actor: newCompanyName }
+      ]
     };
-    setApplications([newApp, ...applications]);
-    
-    const newNotif = {
-      id: Date.now(),
-      text: `Application ${newId} submitted successfully.`,
-      time: 'Just now',
-      read: false
-    };
-    setNotifications([newNotif, ...notifications]);
-    setAuditLogs([{ id: Date.now(), action: `New application ${newId} submitted`, role: 'TRADER', time: 'Just now' }, ...auditLogs]);
 
-    setNewAppProduct('');
-    setNewAppQuantity('');
-    setNewAppHsCode('');
+    setApplications([newEntry, ...applications]);
     setShowNewAppModal(false);
-    setActiveFilter('All');
+    setNewCompanyName('');
+    setNewProduct('');
+    setNewQuantity('');
+    setNewFile(null);
   };
 
-  const handleAgencyAction = (appId, action) => {
-    const updatedStatus = action; 
-    const updatedApps = applications.map(app => 
-      app.id === appId ? { ...app, status: updatedStatus } : app
-    );
-    setApplications(updatedApps);
-
-    if (trackedApp && trackedApp.id === appId) {
-      setTrackedApp({ ...trackedApp, status: updatedStatus });
-    }
-
-    const newNotif = {
-      id: Date.now(),
-      text: `Application ${appId} has been ${updatedStatus.toLowerCase()} by Customs.`,
-      time: 'Just now',
-      read: false
-    };
-    setNotifications([newNotif, ...notifications]);
-    setAuditLogs([{ id: Date.now(), action: `Application ${appId} status updated to ${updatedStatus}`, role: 'AGENCY', time: 'Just now' }, ...auditLogs]);
+  // Agency action: Approve or Deny with reason
+  const handleAgencyDecision = (id, decision, reason = '') => {
+    setApplications(applications.map(app => {
+      if (app.id === id) {
+        const updatedTrail = [...app.auditTrail, {
+          action: decision === 'APPROVED' ? 'Final Decision: Approved & E-Permit Issued' : `Application Denied: ${reason}`,
+          time: new Date().toISOString().slice(0, 16).replace('T', ' '),
+          actor: currentUser.email
+        }];
+        return {
+          ...app,
+          status: decision,
+          denialReason: decision === 'DENIED' ? reason : '',
+          auditTrail: updatedTrail
+        };
+      }
+      return app;
+    }));
   };
 
-  const toggleGateway = () => {
-    const nextStatus = gatewayStatus === 'Operational' ? 'Maintenance Mode' : 'Operational';
-    setGatewayStatus(nextStatus);
-    setAuditLogs([{ id: Date.now(), action: `Gateway status changed to ${nextStatus}`, role: 'ADMIN', time: 'Just now' }, ...auditLogs]);
+  // Admin action: Void / Archive Record (Replacing Force Purge)
+  const handleVoidRecord = (id) => {
+    setApplications(applications.map(app => {
+      if (app.id === id) {
+        return {
+          ...app,
+          status: 'VOIDED',
+          denialReason: 'Administrative Override: Record Voided & Archived',
+          auditTrail: [...app.auditTrail, { action: 'Record Voided by Admin', time: new Date().toISOString().slice(0, 16).replace('T', ' '), actor: 'Admin' }]
+        };
+      }
+      return app;
+    }));
   };
 
-  const handleSendBroadcast = (e) => {
-    e.preventDefault();
-    if (!broadcastMessage.trim()) return;
-    const newNotif = {
-      id: Date.now(),
-      text: `ADMIN BROADCAST: ${broadcastMessage}`,
-      time: 'Just now',
-      read: false
-    };
-    setNotifications([newNotif, ...notifications]);
-    setAuditLogs([{ id: Date.now(), action: `Broadcast message sent to portal users`, role: 'ADMIN', time: 'Just now' }, ...auditLogs]);
-    setBroadcastMessage('');
-    alert('Broadcast notification successfully pushed.');
+  // IAM User Status Control
+  const toggleUserStatus = (email) => {
+    setUsersList(usersList.map(u => {
+      if (u.email === email) {
+        return { ...u, status: u.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' };
+      }
+      return u;
+    }));
   };
 
-  // ADMIN FUNCTIONS
-  const handleUserStatusChange = (userId, newStatus) => {
-    const updatedUsers = systemUsers.map(user => 
-      user.id === userId ? { ...user, status: newStatus } : user
-    );
-    setSystemUsers(updatedUsers);
-    setAuditLogs([{ id: Date.now(), action: `Admin updated user ID ${userId} to ${newStatus}`, role: 'ADMIN', time: 'Just now' }, ...auditLogs]);
-  };
-
-  const handleForceDeleteApp = (appId) => {
-    const confirmDelete = window.confirm(`CRITICAL ACTION: Are you sure you want to permanently delete application ${appId}?`);
-    if (!confirmDelete) return;
-    
-    setApplications(applications.filter(app => app.id !== appId));
-    setAuditLogs([{ id: Date.now(), action: `Admin forcefully purged application ${appId}`, role: 'ADMIN', time: 'Just now' }, ...auditLogs]);
-  };
-
-  if (!isClient) return null;
-
-  if (!session) {
+  // ================= RENDER LOGIN VIEW =================
+  if (!currentUser) {
     return (
-      <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border-t-8 border-emerald-700">
-          <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="National Single Window Logo" className="h-16 w-auto object-contain max-w-full" />
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-slate-100">
+        <div className="bg-slate-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-slate-700">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-black tracking-wider uppercase text-emerald-400">Enterprise Trade Portal</h1>
+            <p className="text-xs text-slate-400 mt-1">Federal Republic of Nigeria - Regulatory Gateway</p>
           </div>
 
-          <h1 className="text-2xl font-extrabold text-emerald-900 text-center tracking-tight">National Single Window</h1>
-          <p className="text-xs text-gray-500 text-center mt-1 mb-6 uppercase tracking-widest font-semibold">Enterprise Trade Portal (Nigeria)</p>
-
           {loginError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded text-center">
+            <div className="bg-rose-900/50 border border-rose-700 text-rose-200 text-xs p-3 rounded mb-4">
               {loginError}
             </div>
           )}
 
-          <form onSubmit={handleSecureLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Official Email Address</label>
+              <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Official Email Address</label>
               <input 
                 type="email" 
                 required
-                placeholder="trader@abc.com or customs@nsw.gov.ng" 
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                className="w-full bg-slate-900 border border-slate-700 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
+                placeholder="e.g. trader@abc.com"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
               />
             </div>
-
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Password</label>
+              <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Password</label>
               <input 
                 type="password" 
                 required
-                placeholder="••••••••" 
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                className="w-full bg-slate-900 border border-slate-700 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
+                placeholder="••••••••"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
               />
             </div>
-
             <button 
               type="submit"
-              className="w-full bg-emerald-800 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-emerald-900 transition shadow"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-3 rounded text-sm transition-all shadow-lg"
             >
               Sign In to Portal
             </button>
           </form>
-
-          <div className="mt-6 pt-4 border-t border-gray-100 text-center text-[11px] text-gray-400 space-y-1">
-            <p>Demo Traders: <code className="text-emerald-700">trader@abc.com</code> / <code className="text-emerald-700">password123</code></p>
-            <p>Demo Agency: <code className="text-emerald-700">customs@nsw.gov.ng</code> / <code className="text-emerald-700">secure2026</code></p>
-            <p>Demo Admin: <code className="text-emerald-700">admin@nsw.gov.ng</code> / <code className="text-emerald-700">admin2026</code></p>
-          </div>
         </div>
       </div>
     );
   }
 
-  const FilterDashboard = () => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <button 
-        onClick={() => setActiveFilter('All')}
-        className={`p-4 rounded-xl border transition text-left flex flex-col ${activeFilter === 'All' ? 'bg-emerald-50 border-emerald-500 shadow-sm ring-1 ring-emerald-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-      >
-        <span className="text-xs font-bold uppercase text-gray-500">No of Applications</span>
-        <span className="text-3xl font-extrabold text-gray-900 mt-1">{totalApps}</span>
-      </button>
-
-      <button 
-        onClick={() => setActiveFilter('Approved')}
-        className={`p-4 rounded-xl border transition text-left flex flex-col ${activeFilter === 'Approved' ? 'bg-green-50 border-green-500 shadow-sm ring-1 ring-green-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-      >
-        <span className="text-xs font-bold uppercase text-gray-500">No of Approved</span>
-        <span className="text-3xl font-extrabold text-green-700 mt-1">{approvedApps}</span>
-      </button>
-
-      <button 
-        onClick={() => setActiveFilter('Denied')}
-        className={`p-4 rounded-xl border transition text-left flex flex-col ${activeFilter === 'Denied' ? 'bg-red-50 border-red-500 shadow-sm ring-1 ring-red-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-      >
-        <span className="text-xs font-bold uppercase text-gray-500">No of Denied</span>
-        <span className="text-3xl font-extrabold text-red-700 mt-1">{deniedApps}</span>
-      </button>
-
-      <button 
-        onClick={() => setActiveFilter('Pending')}
-        className={`p-4 rounded-xl border transition text-left flex flex-col ${activeFilter === 'Pending' ? 'bg-amber-50 border-amber-500 shadow-sm ring-1 ring-amber-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-      >
-        <span className="text-xs font-bold uppercase text-gray-500">No of Pending</span>
-        <span className="text-3xl font-extrabold text-amber-700 mt-1">{pendingApps}</span>
-      </button>
-    </div>
-  );
-
+  // ================= RENDER MAIN PORTAL DASHBOARD =================
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
-      <header className="bg-emerald-900 text-white shadow-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center space-x-3 overflow-hidden">
-            <img src="/logo.png" alt="NSW Logo" className="h-10 w-auto object-contain bg-white rounded p-1 flex-shrink-0" />
-            <div className="truncate">
-              <h1 className="text-sm md:text-base font-bold tracking-wide truncate">National Single Window (NSW)</h1>
-              <p className="text-[10px] md:text-xs text-emerald-300 truncate">Federal Republic of Nigeria - Trade Portal</p>
-            </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+      
+      {/* Top Banner / Navigation */}
+      <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-black tracking-tight text-emerald-400 uppercase">Enterprise Trade Portal (Nigeria)</h2>
+          <p className="text-xs text-slate-400">Unified Regulatory & Compliance Exchange</p>
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="text-right">
+            <p className="text-xs font-bold text-slate-200">{currentUser.companyName}</p>
+            <p className="text-[10px] text-emerald-500 uppercase tracking-widest font-semibold">{currentUser.role}</p>
           </div>
-
-          <div className="flex items-center space-x-4 relative">
-            <div className="relative">
-              <button 
-                onClick={() => { setShowNotifications(!showNotifications); setNotifications(notifications.map(n => ({...n, read: true}))); }}
-                className="relative p-2 rounded-full hover:bg-emerald-800 transition focus:outline-none"
-              >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                </svg>
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2 text-gray-800 z-50">
-                  <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
-                    <span className="font-semibold text-sm">System Notifications</span>
-                    <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Live</span>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {notifications.map((notif) => (
-                      <div key={notif.id} className="px-4 py-3 border-b border-gray-50 hover:bg-gray-50 text-xs">
-                        <p className="font-medium text-gray-900">{notif.text}</p>
-                        <span className="text-gray-400 mt-1 block">{notif.time}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="text-xs font-medium bg-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-700 flex items-center space-x-3">
-              <div className="hidden sm:block">
-                <span className="block text-[10px] text-emerald-300 uppercase">{session.name}</span>
-                <span className="font-bold uppercase">{session.role}</span>
-              </div>
-              <button 
-                onClick={() => setSession(null)} 
-                className="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1 rounded text-xs font-semibold transition"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
+          <button 
+            onClick={() => setCurrentUser(null)}
+            className="bg-slate-800 hover:bg-rose-950 hover:text-rose-300 text-slate-300 text-xs px-3 py-1.5 rounded border border-slate-700 transition-colors"
+          >
+            Sign Out
+          </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        
-        {session.role === 'trader' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Trader Dashboard - {session.name}</h3>
-                <p className="text-xs text-gray-500">Filter your applications by state or submit a new application.</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                <input 
-                  type="text" 
-                  placeholder="Search ID, Product..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none flex-grow sm:flex-grow-0"
-                />
-                <button 
-                  onClick={() => setShowNewAppModal(true)}
-                  className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition shadow whitespace-nowrap"
-                >
-                  + New Application
-                </button>
-              </div>
-            </div>
-
-            <FilterDashboard />
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[650px]">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
-                      <th className="py-3 px-4">Application ID</th>
-                      <th className="py-3 px-4">Type</th>
-                      <th className="py-3 px-4">Product / HS Code</th>
-                      <th className="py-3 px-4">Current State</th>
-                      <th className="py-3 px-4">Process Flow</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm divide-y divide-gray-100">
-                    {displayedApps.length > 0 ? displayedApps.map(app => (
-                      <tr key={app.id} className="hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td>
-                        <td className="py-3 px-4">{app.type}</td>
-                        <td className="py-3 px-4">{app.product} <br/> <span className="font-mono text-xs text-gray-400">{app.hsCode}</span></td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider
-                            ${isApproved(app.status) ? 'bg-green-100 text-green-800' : ''}
-                            ${isDenied(app.status) ? 'bg-red-100 text-red-800' : ''}
-                            ${isPending(app.status) ? 'bg-amber-100 text-amber-800' : ''}
-                          `}>
-                            {app.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <button 
-                            onClick={() => setTrackedApp(app)}
-                            className="bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-800 transition flex items-center space-x-1.5 shadow-sm"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                            </svg>
-                            <span>Trace Status</span>
-                          </button>
-                        </td>
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan="5" className="py-8 text-center text-gray-400 text-sm">
-                          No applications found for the selected state.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {session.role === 'agency' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Customs Regulatory & Review Console</h3>
-                <p className="text-xs text-gray-500">Filter applications by state to manage your approval queue.</p>
-              </div>
-              <input 
-                type="text" 
-                placeholder="Search Company, ID..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none w-full sm:w-auto"
-              />
-            </div>
-
-            <FilterDashboard />
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[700px]">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
-                      <th className="py-3 px-4">Application ID</th>
-                      <th className="py-3 px-4">Company</th>
-                      <th className="py-3 px-4">Product / HS Code</th>
-                      <th className="py-3 px-4">Current State</th>
-                      <th className="py-3 px-4">Actions & Flow</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm divide-y divide-gray-100">
-                    {displayedApps.length > 0 ? displayedApps.map(app => (
-                      <tr key={app.id} className="hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td>
-                        <td className="py-3 px-4">{app.company}</td>
-                        <td className="py-3 px-4">{app.product} <span className="block text-xs font-mono text-gray-400">{app.hsCode}</span></td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider
-                            ${isApproved(app.status) ? 'bg-green-100 text-green-800' : ''}
-                            ${isDenied(app.status) ? 'bg-red-100 text-red-800' : ''}
-                            ${isPending(app.status) ? 'bg-amber-100 text-amber-800' : ''}
-                          `}>
-                            {app.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 space-x-2 whitespace-nowrap">
-                          <button 
-                            onClick={() => setTrackedApp(app)}
-                            className="bg-emerald-700 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-emerald-800 transition shadow-sm"
-                          >
-                            Audit Flow
-                          </button>
-                          {isPending(app.status) ? (
-                            <>
-                              <button onClick={() => handleAgencyAction(app.id, 'Approved')} className="bg-green-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-green-700 transition shadow-sm">Approve</button>
-                              <button onClick={() => handleAgencyAction(app.id, 'Denied')} className="bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-red-700 transition shadow-sm">Deny</button>
-                            </>
-                          ) : (
-                            <span className="text-gray-400 text-xs italic font-medium">Completed</span>
-                          )}
-                        </td>
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan="5" className="py-8 text-center text-gray-400 text-sm">
-                          No applications found for the selected state.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {session.role === 'admin' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">System Governance & Gateway Console</h3>
-                <p className="text-xs text-gray-500 mt-1">Platform-wide trade metrics, user account access control, and broadcast notices.</p>
-              </div>
-              <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                <span className="text-xs font-bold text-gray-600">Gateway Status:</span>
-                <button 
-                  onClick={toggleGateway} 
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white transition ${gatewayStatus === 'Operational' ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'}`}
-                >
-                  {gatewayStatus} (Toggle)
-                </button>
-              </div>
-            </div>
-
-            <FilterDashboard />
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-              <div className="p-4 bg-gray-50 border-b border-gray-200">
-                 <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Global Application View</h4>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-white border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
-                      <th className="py-3 px-4">ID</th>
-                      <th className="py-3 px-4">Company</th>
-                      <th className="py-3 px-4">Type</th>
-                      <th className="py-3 px-4">State</th>
-                      <th className="py-3 px-4">System Override</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm divide-y divide-gray-100 bg-white">
-                    {displayedApps.map(app => (
-                      <tr key={app.id}>
-                        <td className="py-2 px-4 font-medium text-emerald-700">{app.id}</td>
-                        <td className="py-2 px-4">{app.company}</td>
-                        <td className="py-2 px-4">{app.type}</td>
-                        <td className="py-2 px-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isApproved(app.status) ? 'bg-green-100 text-green-800' : isDenied(app.status) ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {app.status}
-                          </span>
-                        </td>
-                        <td className="py-2 px-4">
-                          <button 
-                            onClick={() => handleForceDeleteApp(app.id)}
-                            className="text-red-600 hover:text-red-800 text-[10px] font-bold uppercase border border-red-200 bg-red-50 hover:bg-red-100 px-2 py-1 rounded transition"
-                          >
-                            Force Purge
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-              <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                  <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Identity & Access Management</h4>
-                  <span className="text-xs text-gray-500 font-medium">Manage Agency & Trader Accounts</span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-white border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
-                      <th className="py-3 px-4">User / Entity Name</th>
-                      <th className="py-3 px-4">Role Area</th>
-                      <th className="py-3 px-4">Account Status</th>
-                      <th className="py-3 px-4">Access Controls</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm divide-y divide-gray-100 bg-white">
-                    {systemUsers.map(user => (
-                      <tr key={user.id}>
-                        <td className="py-3 px-4">
-                          <span className="block font-medium text-gray-900">{user.name}</span>
-                          <span className="block text-xs text-gray-500">{user.email}</span>
-                        </td>
-                        <td className="py-3 px-4 font-mono text-xs">{user.role.toUpperCase()}</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${user.status === 'Active' ? 'bg-green-100 text-green-800' : user.status === 'Suspended' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {user.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 space-x-2">
-                          {user.status !== 'Active' && (
-                            <button onClick={() => handleUserStatusChange(user.id, 'Active')} className="bg-emerald-600 text-white px-2 py-1 rounded text-[11px] font-bold hover:bg-emerald-700 transition">Authorize</button>
-                          )}
-                          {user.status !== 'Suspended' && (
-                            <button onClick={() => handleUserStatusChange(user.id, 'Suspended')} className="bg-gray-800 text-white px-2 py-1 rounded text-[11px] font-bold hover:bg-gray-900 transition">Suspend</button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Push Broadcast Notice</h4>
-                <form onSubmit={handleSendBroadcast} className="space-y-3">
-                  <textarea 
-                    rows="3"
-                    required
-                    placeholder="Enter urgent system-wide announcement for traders and agencies..."
-                    value={broadcastMessage}
-                    onChange={(e) => setBroadcastMessage(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                  ></textarea>
-                  <button type="submit" className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-900 transition shadow">
-                    Broadcast Notice
-                  </button>
-                </form>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">System Security Audit Trail</h4>
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 max-h-40 overflow-y-auto text-[11px] font-mono space-y-2">
-                  {auditLogs.map(log => (
-                    <div key={log.id} className="flex justify-between border-b pb-1">
-                      <span className="text-gray-800">[{log.role}] {log.action}</span>
-                      <span className="text-gray-400">{log.time}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {trackedApp && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100">
-            <div className="bg-emerald-900 text-white p-5 flex justify-between items-start">
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-300 block mb-1">Transaction Flow Status</span>
-                <h3 className="text-lg font-extrabold">{trackedApp.id}</h3>
-                <p className="text-xs text-emerald-200 mt-0.5">{trackedApp.product} ({trackedApp.quantity})</p>
-              </div>
-              <button onClick={() => setTrackedApp(null)} className="text-white hover:text-emerald-300 font-bold text-xl leading-none">×</button>
-            </div>
-
-            <div className="p-6 bg-gray-50 max-h-[75vh] overflow-y-auto">
-              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-0">
-                
-                <div className="relative pl-8 pb-8">
-                  <div className="absolute left-3.5 top-6 bottom-0 w-0.5 bg-emerald-500"></div>
-                  <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
-                  <div>
-                    <h5 className="text-sm font-bold text-gray-900">Application Submitted</h5>
-                    <p className="text-xs text-gray-600 mt-0.5">Documentation uploaded by {trackedApp.company}</p>
-                    <span className="text-[10px] text-emerald-700 font-semibold mt-1 block">{trackedApp.submittedAt}</span>
-                  </div>
-                </div>
-
-                <div className="relative pl-8 pb-8">
-                  <div className="absolute left-3.5 top-6 bottom-0 w-0.5 bg-emerald-500"></div>
-                  <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
-                  <div>
-                    <h5 className="text-sm font-bold text-gray-900">Automated Compliance Check</h5>
-                    <p className="text-xs text-gray-600 mt-0.5">HS Code ({trackedApp.hsCode}) tariff validation passed</p>
-                  </div>
-                </div>
-
-                <div className="relative pl-8 pb-8">
-                  <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${isApproved(trackedApp.status) ? 'bg-emerald-500' : isDenied(trackedApp.status) ? 'bg-red-300' : 'bg-gray-200'}`}></div>
-                  {isPending(trackedApp.status) ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold ring-4 ring-amber-100 animate-pulse">•</div>
-                  ) : isApproved(trackedApp.status) ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
-                  ) : (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shadow">!</div>
-                  )}
-                  <div>
-                    <h5 className="text-sm font-bold text-gray-900">Customs & Regulatory Review</h5>
-                    <p className="text-xs text-gray-600 mt-0.5">
-                      {isPending(trackedApp.status) && 'Currently being inspected by Agency'}
-                      {isApproved(trackedApp.status) && 'Document verification completed'}
-                      {isDenied(trackedApp.status) && 'Denied: Missing regulatory clearance'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="relative pl-8">
-                  {isApproved(trackedApp.status) ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow ring-4 ring-emerald-100">✓</div>
-                  ) : isDenied(trackedApp.status) ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-100 border-2 border-red-500 text-red-600 flex items-center justify-center text-xs font-bold">✕</div>
-                  ) : (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-gray-100 border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-bold">4</div>
-                  )}
-                  <div>
-                    <h5 className={`text-sm font-bold ${isApproved(trackedApp.status) ? 'text-emerald-900 font-extrabold' : 'text-gray-400'}`}>
-                      Final Gateway Decision
-                    </h5>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {isApproved(trackedApp.status) ? 'Digital Permit released successfully' : isDenied(trackedApp.status) ? 'Application rejected' : 'Awaiting final state'}
-                    </p>
-                    
-                    {isApproved(trackedApp.status) && (
-                      <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex justify-between items-center">
-                        <div>
-                          <span className="block text-xs font-bold text-emerald-900">Official E-Permit Generated</span>
-                          <span className="block text-[10px] text-emerald-700 font-mono">{trackedApp.id}-DOC</span>
-                        </div>
-                        <button onClick={() => alert(`DOWNLOADING E-PERMIT\n\nPermit ID: ${trackedApp.id}-DOC\nCompany: ${trackedApp.company}\nAuthorized by: National Single Window (Nigeria)\n\n(In production, this downloads a signed PDF).`)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center shadow-sm">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                          Download PDF
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            </div>
-            
-            <div className="bg-white px-6 py-4 border-t border-gray-200 flex justify-end items-center space-x-2">
-              {session.role === 'agency' && isPending(trackedApp.status) && (
-                <>
-                  <button onClick={() => handleAgencyAction(trackedApp.id, 'Approved')} className="bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-800 transition">Approve</button>
-                  <button onClick={() => handleAgencyAction(trackedApp.id, 'Denied')} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 transition">Deny</button>
-                </>
-              )}
-              <button onClick={() => setTrackedApp(null)} className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Close Window</button>
-            </div>
-          </div>
+      {/* Broadcast Notice Banner */}
+      {activeBroadcast && (
+        <div className="bg-emerald-950/60 border-b border-emerald-800/50 px-6 py-2 text-xs text-emerald-200 flex justify-between items-center">
+          <span>📢 <strong>System Broadcast:</strong> {activeBroadcast}</span>
         </div>
       )}
 
-      {showNewAppModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border-t-8 border-emerald-700">
-            <div className="flex justify-between items-center mb-4 border-b pb-2">
-              <h4 className="font-bold text-gray-900 text-base">Submit New Trade Application</h4>
-              <button onClick={() => setShowNewAppModal(false)} className="text-gray-500 hover:text-gray-700 font-bold text-lg">×</button>
+      {/* Main Dashboard Body */}
+      <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-8">
+        
+        {/* Gateway Status Header */}
+        <div className="flex justify-between items-center bg-slate-900/60 p-6 rounded-xl border border-slate-800">
+          <div>
+            <h3 className="text-lg font-bold">System Governance & Console</h3>
+            <p className="text-xs text-slate-400">Live operational oversight and trade record audit views.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-400 uppercase font-bold">Gateway Status:</span>
+            <span className={`px-3 py-1 rounded text-xs font-bold ${gatewayOperational ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700' : 'bg-rose-900/60 text-rose-300 border border-rose-700'}`}>
+              {gatewayOperational ? 'Operational' : 'Offline / Maintenance'}
+            </span>
+          </div>
+        </div>
+
+        {/* ================= TRADER VIEW ================= */}
+        {currentUser.role === 'TRADER' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-base font-bold text-slate-200">My Trade Applications</h3>
+              <button 
+                onClick={() => setShowNewAppModal(true)}
+                className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold px-4 py-2 rounded shadow transition-all"
+              >
+                + Submit New Application
+              </button>
             </div>
-            <form onSubmit={handleFormSubmitApplication} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Application Type</label>
-                <select 
-                  value={newAppType} 
-                  onChange={(e) => setNewAppType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-white"
+
+            <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-900/80">
+                    <th className="p-4">ID</th>
+                    <th className="p-4">Product Description</th>
+                    <th className="p-4">Quantity</th>
+                    <th className="p-4">Type</th>
+                    <th className="p-4">Current Status</th>
+                    <th className="p-4 text-right">Process Flow</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-sm">
+                  {applications.filter(a => a.company === currentUser.companyName).map(app => (
+                    <tr key={app.id} className="hover:bg-slate-800/40 transition-colors">
+                      <td className="p-4 font-mono text-xs text-emerald-400">{app.id}</td>
+                      <td className="p-4 font-medium">{app.product}</td>
+                      <td className="p-4 text-slate-300">{app.quantity}</td>
+                      <td className="p-4 text-slate-400 text-xs">{app.type}</td>
+                      <td className="p-4">
+                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                          app.status === 'APPROVED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
+                          app.status === 'DENIED' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
+                          'bg-amber-950 text-amber-400 border border-amber-800'
+                        }`}>
+                          {app.status}
+                        </span>
+                        {app.denialReason && <p className="text-[10px] text-rose-400 mt-1">{app.denialReason}</p>}
+                      </td>
+                      <td className="p-4 text-right">
+                        <button 
+                          onClick={() => setSelectedAppForTrace(app)}
+                          className="bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs px-3 py-1.5 rounded border border-slate-700"
+                        >
+                          Trace Status
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ================= AGENCY VIEW ================= */}
+        {currentUser.role === 'AGENCY' && (
+          <div className="space-y-6">
+            <h3 className="text-base font-bold text-slate-200">Regulatory Agency Review Queue</h3>
+            <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-900/80">
+                    <th className="p-4">ID</th>
+                    <th className="p-4">Company</th>
+                    <th className="p-4">Product</th>
+                    <th className="p-4">Document Attachment</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-sm">
+                  {applications.map(app => (
+                    <tr key={app.id} className="hover:bg-slate-800/40">
+                      <td className="p-4 font-mono text-xs text-emerald-400">{app.id}</td>
+                      <td className="p-4 text-slate-300">{app.company}</td>
+                      <td className="p-4 font-medium">{app.product}</td>
+                      <td className="p-4 text-xs text-slate-400 underline">{app.documentName || 'No File'}</td>
+                      <td className="p-4 font-bold text-xs">{app.status}</td>
+                      <td className="p-4 text-right space-x-2">
+                        {app.status === 'PENDING' && (
+                          <>
+                            <button 
+                              onClick={() => handleAgencyDecision(app.id, 'APPROVED')}
+                              className="bg-emerald-700 hover:bg-emerald-600 text-slate-950 font-bold text-xs px-3 py-1 rounded"
+                            >
+                              Approve
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const reason = prompt('Enter specific denial reason (e.g., Tax Clearance Expired):');
+                                if (reason) handleAgencyDecision(app.id, 'DENIED', reason);
+                              }}
+                              className="bg-rose-700 hover:bg-rose-600 text-white font-bold text-xs px-3 py-1 rounded"
+                            >
+                              Deny
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ================= ADMIN VIEW ================= */}
+        {currentUser.role === 'ADMIN' && (
+          <div className="space-y-8">
+            {/* Admin Metrics & Controls */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
+                <p className="text-xs text-slate-400 uppercase font-bold">Total Applications</p>
+                <p className="text-3xl font-black mt-2 text-emerald-400">{applications.length}</p>
+              </div>
+              <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
+                <p className="text-xs text-slate-400 uppercase font-bold">Gateway Control</p>
+                <button 
+                  onClick={() => setGatewayOperational(!gatewayOperational)}
+                  className={`mt-3 w-full py-2 text-xs font-bold rounded ${gatewayOperational ? 'bg-amber-800 text-amber-100 hover:bg-amber-700' : 'bg-emerald-800 text-emerald-100 hover:bg-emerald-700'}`}
                 >
-                  <option value="Import Permit">Import Permit (Form M)</option>
+                  Toggle Gateway {gatewayOperational ? 'OFFLINE' : 'ONLINE'}
+                </button>
+              </div>
+              <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
+                <p className="text-xs text-slate-400 uppercase font-bold">Push Broadcast Notice</p>
+                <div className="mt-2 flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Enter broadcast update..." 
+                    className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs flex-1"
+                    value={broadcastMessage}
+                    onChange={(e) => setBroadcastMessage(e.target.value)}
+                  />
+                  <button 
+                    onClick={() => { setActiveBroadcast(broadcastMessage); setBroadcastMessage(''); }}
+                    className="bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded text-xs"
+                  >
+                    Publish
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Global Application View with Compliant Void / Archive Action (Replacing Force Purge) */}
+            <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-4">
+              <h3 className="text-base font-bold text-slate-200">Global Records & Compliance Voiding</h3>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                    <th className="p-3">ID</th>
+                    <th className="p-3">Company</th>
+                    <th className="p-3">Product</th>
+                    <th className="p-3">State</th>
+                    <th className="p-3 text-right">Compliance Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-sm">
+                  {applications.map(app => (
+                    <tr key={app.id}>
+                      <td className="p-3 font-mono text-xs text-emerald-400">{app.id}</td>
+                      <td className="p-3">{app.company}</td>
+                      <td className="p-3">{app.product}</td>
+                      <td className="p-3 font-bold text-xs">{app.status}</td>
+                      <td className="p-3 text-right">
+                        {app.status !== 'VOIDED' ? (
+                          <button 
+                            onClick={() => handleVoidRecord(app.id)}
+                            className="text-rose-400 hover:text-rose-300 text-xs font-bold underline"
+                          >
+                            Void / Archive Record
+                          </button>
+                        ) : (
+                          <span className="text-slate-500 text-xs">Archived</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Identity & Access Management (IAM) */}
+            <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-4">
+              <h3 className="text-base font-bold text-slate-200">Identity & Access Management (IAM)</h3>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                    <th className="p-3">Entity Name</th>
+                    <th className="p-3">Email</th>
+                    <th className="p-3">Role</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Access Control</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-sm">
+                  {usersList.map(u => (
+                    <tr key={u.email}>
+                      <td className="p-3 font-medium">{u.name}</td>
+                      <td className="p-3 text-slate-400 text-xs">{u.email}</td>
+                      <td className="p-3 text-xs uppercase text-emerald-400">{u.role}</td>
+                      <td className="p-3 font-bold text-xs">{u.status}</td>
+                      <td className="p-3 text-right">
+                        <button 
+                          onClick={() => toggleUserStatus(u.email)}
+                          className={`text-xs px-3 py-1 rounded font-bold ${u.status === 'ACTIVE' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}`}
+                        >
+                          {u.status === 'ACTIVE' ? 'Suspend' : 'Authorize'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Security Audit Trail Search */}
+            <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-base font-bold text-slate-200">System Security Audit Trail</h3>
+                <input 
+                  type="text" 
+                  placeholder="Filter audit logs..." 
+                  className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 w-64"
+                  value={auditSearchQuery}
+                  onChange={(e) => setAuditSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {applications.flatMap(a => a.auditTrail).filter(log => log.action.toLowerCase().includes(auditSearchQuery.toLowerCase()) || log.actor.toLowerCase().includes(auditSearchQuery.toLowerCase())).map((log, idx) => (
+                  <div key={idx} className="bg-slate-950 p-3 rounded border border-slate-800 text-xs flex justify-between">
+                    <span><strong className="text-emerald-400">[{log.actor}]</strong> {log.action}</span>
+                    <span className="text-slate-500 font-mono">{log.time}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+      </main>
+
+      {/* ================= NEW APPLICATION MODAL (No HS Code, Dynamic Company, File Upload <5MB) ================= */}
+      {showNewAppModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 w-full max-w-lg space-y-4">
+            <h3 className="text-lg font-bold text-emerald-400">Submit New Trade Application</h3>
+            
+            {formError && (
+              <div className="bg-rose-950 border border-rose-700 text-rose-200 text-xs p-3 rounded">
+                {formError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateApplication} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold uppercase mb-1 text-slate-300">Application Type</label>
+                <select 
+                  className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-slate-200"
+                  value={newAppType}
+                  onChange={(e) => setNewAppType(e.target.value)}
+                >
+                  <option value="Import Permit">Import Permit</option>
                   <option value="Export License">Export License</option>
-                  <option value="Transit Goods Clearance">Transit Goods Clearance</option>
                 </select>
               </div>
+
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Product Description</label>
-                <input type="text" required placeholder="e.g., Heavy Industrial Generator" value={newAppProduct} onChange={(e) => setNewAppProduct(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" />
+                <label className="block font-semibold uppercase mb-1 text-slate-300">Company Name</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="Enter your registered company name"
+                  className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-slate-200"
+                  value={newCompanyName}
+                  onChange={(e) => setNewCompanyName(e.target.value)}
+                />
               </div>
+
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity & Units</label>
-                <input type="text" required placeholder="e.g., 5 Units / 100 Metric Tons" value={newAppQuantity} onChange={(e) => setNewAppQuantity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" />
+                <label className="block font-semibold uppercase mb-1 text-slate-300">Product Description</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Heavy Industrial Generator"
+                  className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-slate-200"
+                  value={newProduct}
+                  onChange={(e) => setNewProduct(e.target.value)}
+                />
               </div>
+
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Harmonized System (HS) Code</label>
-                <input type="text" required placeholder="e.g., 8502.11.00" value={newAppHsCode} onChange={(e) => setNewAppHsCode(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" />
+                <label className="block font-semibold uppercase mb-1 text-slate-300">Quantity & Units</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. 5 Units / 100 Metric Tons"
+                  className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-slate-200"
+                  value={newQuantity}
+                  onChange={(e) => setNewQuantity(e.target.value)}
+                />
               </div>
-              <div className="flex justify-end space-x-3 pt-2">
-                <button type="button" onClick={() => setShowNewAppModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-900 transition shadow">Submit Application</button>
+
+              <div>
+                <label className="block font-semibold uppercase mb-1 text-slate-300">Supporting Verification Document (Max 5MB: PDF, PNG, JPG)</label>
+                <input 
+                  type="file" 
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  required
+                  className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-slate-950 hover:file:bg-emerald-500"
+                  onChange={(e) => setNewFile(e.target.files[0])}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setShowNewAppModal(false)}
+                  className="bg-slate-800 px-4 py-2 rounded text-slate-300 hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded hover:bg-emerald-500"
+                >
+                  Submit Application
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* ================= TRACE STATUS MODAL (Renamed Process Flow Boxes & Official E-Permit Modal) ================= */}
+      {selectedAppForTrace && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 w-full max-w-lg space-y-6">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-emerald-400">Application Status Trace: {selectedAppForTrace.id}</h3>
+              <button onClick={() => setSelectedAppForTrace(null)} className="text-slate-400 hover:text-slate-200">✕</button>
+            </div>
+
+            {/* Renamed Process Flow Steps */}
+            <div className="space-y-4">
+              <div className="bg-slate-950 p-4 rounded border border-slate-800 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-200">Step 1: Document Completeness Check</p>
+                  <p className="text-[10px] text-slate-400">File verification and structure checked successfully.</p>
+                </div>
+                <span className="text-emerald-400 text-xs font-bold">PASSED</span>
+              </div>
+
+              <div className="bg-slate-950 p-4 rounded border border-slate-800 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-200">Step 2: Regulatory Agency Review</p>
+                  <p className="text-[10px] text-slate-400">Compliance and tariff verification completed.</p>
+                </div>
+                <span className={`text-xs font-bold ${selectedAppForTrace.status === 'DENIED' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {selectedAppForTrace.status === 'DENIED' ? 'FAILED' : 'APPROVED'}
+                </span>
+              </div>
+
+              <div className="bg-slate-950 p-4 rounded border border-slate-800 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-200">Step 3: Final Decision</p>
+                  <p className="text-[10px] text-slate-400">Digital regulatory decision released.</p>
+                </div>
+                <span className={`text-xs font-bold ${selectedAppForTrace.status === 'APPROVED' ? 'text-emerald-400' : 'text-slate-400'}`}>
+                  {selectedAppForTrace.status === 'APPROVED' ? 'RELEASED' : 'PENDING'}
+                </span>
+              </div>
+            </div>
+
+            {/* Official E-Permit Certificate Trigger */}
+            {selectedAppForTrace.status === 'APPROVED' && (
+              <div className="bg-emerald-950/40 border border-emerald-800 p-4 rounded-xl space-y-3">
+                <p className="text-xs font-bold text-emerald-300">Official E-Permit Ready</p>
+                <button 
+                  onClick={() => setSelectedAppForPermit(selectedAppForTrace)}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded text-xs"
+                >
+                  View Official Certificate Document
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ================= OFFICIAL E-PERMIT CERTIFICATE MODAL ================= */}
+      {selectedAppForPermit && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+          <div className="bg-white text-slate-900 rounded-xl p-8 w-full max-w-2xl space-y-6 shadow-2xl relative">
+            <div className="text-center border-b border-slate-300 pb-4">
+              <h2 className="text-lg font-black uppercase tracking-wider text-emerald-800">Federal Republic of Nigeria</h2>
+              <h3 className="text-md font-bold text-slate-700">Enterprise Trade Portal - Official E-Permit</h3>
+              <p className="text-[10px] font-mono text-slate-500 mt-1">Permit Reference: {selectedAppForPermit.id}-DOC</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded border border-slate-200">
+              <div>
+                <p className="text-slate-500 font-semibold uppercase">Holder / Company Name:</p>
+                <p className="font-bold text-slate-900 mt-0.5">{selectedAppForPermit.company}</p>
+              </div>
+              <div>
+                <p className="text-slate-500 font-semibold uppercase">Permit Classification:</p>
+                <p className="font-bold text-slate-900 mt-0.5">{selectedAppForPermit.type}</p>
+              </div>
+              <div>
+                <p className="text-slate-500 font-semibold uppercase">Approved Product:</p>
+                <p className="font-bold text-slate-900 mt-0.5">{selectedAppForPermit.product} ({selectedAppForPermit.quantity})</p>
+              </div>
+              <div>
+                <p className="text-slate-500 font-semibold uppercase">Authorization Status:</p>
+                <p className="font-bold text-emerald-700 mt-0.5">VALID & OFFICIALLY ISSUED</p>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t border-slate-300 text-xs">
+              <div>
+                <p className="font-bold">Authorized by Regulatory Board</p>
+                <p className="text-[10px] text-slate-500">National Single Window Digital Authority</p>
+              </div>
+              <button 
+                onClick={() => alert('Simulated PDF Download Triggered Successfully.')}
+                className="bg-slate-900 text-white font-bold px-4 py-2 rounded text-xs hover:bg-slate-800"
+              >
+                Download Official PDF
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setSelectedAppForPermit(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-bold text-sm"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
