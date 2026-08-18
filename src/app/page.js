@@ -10,6 +10,9 @@ export default function Home() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Dashboard Filter State
+  const [activeFilter, setActiveFilter] = useState('All');
+  
   // Selected Application for OPay-style Flowbox Modal
   const [trackedApp, setTrackedApp] = useState(null);
   
@@ -34,6 +37,7 @@ export default function Home() {
     { id: 2, action: 'Customs clearance processed', role: 'AGENCY', time: '09:05 WAT' }
   ]);
   
+  // Adjusted Statuses to match Supervisor Sketch: 'Pending', 'Approved', 'Denied'
   const [applications, setApplications] = useState([
     { 
       id: 'NSW-2026-0001', 
@@ -42,7 +46,7 @@ export default function Home() {
       product: 'Industrial Machine Generator', 
       quantity: '10 Units', 
       hsCode: '8479.90.00', 
-      status: 'Pending Review',
+      status: 'Pending',
       submittedAt: '17 Aug 2026, 08:30 WAT'
     },
     { 
@@ -62,7 +66,7 @@ export default function Home() {
       product: 'Chemical Solvents', 
       quantity: '500 Litres', 
       hsCode: '3824.99.99', 
-      status: 'Pending Review',
+      status: 'Denied',
       submittedAt: '17 Aug 2026, 09:40 WAT'
     }
   ]);
@@ -92,17 +96,27 @@ export default function Home() {
   }, [applications, notifications, systemUsers, isClient]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  const totalApps = applications.length;
-  const approvedApps = applications.filter(a => a.status === 'Approved').length;
-  const pendingApps = applications.filter(a => a.status === 'Pending Review').length;
-  const queriedApps = applications.filter(a => a.status === 'Queried').length;
 
-  const filteredApps = applications.filter(app => 
-    app.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.product.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter Logic and Metric Calculations
+  const getRoleApplications = () => {
+    if (!session) return [];
+    if (session.role === 'trader') return applications.filter(app => app.company === session.name || app.company === 'ABC Manufacturing Ltd');
+    return applications; // Agency and Admin see all
+  };
+
+  const roleApps = getRoleApplications();
+  const totalApps = roleApps.length;
+  const approvedApps = roleApps.filter(a => a.status === 'Approved').length;
+  const deniedApps = roleApps.filter(a => a.status === 'Denied').length;
+  const pendingApps = roleApps.filter(a => a.status === 'Pending').length;
+
+  const displayedApps = roleApps.filter(app => {
+    const matchesSearch = app.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          app.product.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = activeFilter === 'All' || app.status === activeFilter;
+    return matchesSearch && matchesFilter;
+  });
 
   const handleSecureLogin = (e) => {
     e.preventDefault();
@@ -136,14 +150,14 @@ export default function Home() {
       product: newAppProduct,
       quantity: newAppQuantity,
       hsCode: newAppHsCode,
-      status: 'Pending Review',
+      status: 'Pending',
       submittedAt: `${nowDate}, ${nowTime}`
     };
     setApplications([newApp, ...applications]);
     
     const newNotif = {
       id: Date.now(),
-      text: `Application ${newId} (${newAppProduct}) submitted successfully by ${session.name}.`,
+      text: `Application ${newId} submitted successfully.`,
       time: 'Just now',
       read: false
     };
@@ -154,10 +168,11 @@ export default function Home() {
     setNewAppQuantity('');
     setNewAppHsCode('');
     setShowNewAppModal(false);
+    setActiveFilter('All'); // Reset filter to show new item
   };
 
   const handleAgencyAction = (appId, action) => {
-    const updatedStatus = action === 'Approve' ? 'Approved' : 'Queried';
+    const updatedStatus = action; // 'Approved' or 'Denied'
     const updatedApps = applications.map(app => 
       app.id === appId ? { ...app, status: updatedStatus } : app
     );
@@ -200,13 +215,7 @@ export default function Home() {
     setNotifications([newNotif, ...notifications]);
     setAuditLogs([{ id: Date.now(), action: `Broadcast message sent to portal users`, role: 'ADMIN', time: 'Just now' }, ...auditLogs]);
     setBroadcastMessage('');
-    alert('Broadcast notification successfully pushed to all active portal users.');
-  };
-
-  const getStatusBadge = (status) => {
-    if (status === 'Approved') return <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-semibold">Approved</span>;
-    if (status === 'Queried') return <span className="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-semibold">Queried</span>;
-    return <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-xs font-semibold">Pending Review</span>;
+    alert('Broadcast notification successfully pushed.');
   };
 
   if (!isClient) return null;
@@ -272,9 +281,45 @@ export default function Home() {
     );
   }
 
+  // Dashboard Metrics & Filter Component (Reusable for Trader & Agency)
+  const FilterDashboard = () => (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <button 
+        onClick={() => setActiveFilter('All')}
+        className={`p-4 rounded-xl border transition text-left flex flex-col ${activeFilter === 'All' ? 'bg-emerald-50 border-emerald-500 shadow-sm ring-1 ring-emerald-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+      >
+        <span className="text-xs font-bold uppercase text-gray-500">No of Applications</span>
+        <span className="text-3xl font-extrabold text-gray-900 mt-1">{totalApps}</span>
+      </button>
+
+      <button 
+        onClick={() => setActiveFilter('Approved')}
+        className={`p-4 rounded-xl border transition text-left flex flex-col ${activeFilter === 'Approved' ? 'bg-green-50 border-green-500 shadow-sm ring-1 ring-green-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+      >
+        <span className="text-xs font-bold uppercase text-gray-500">No of Approved</span>
+        <span className="text-3xl font-extrabold text-green-700 mt-1">{approvedApps}</span>
+      </button>
+
+      <button 
+        onClick={() => setActiveFilter('Denied')}
+        className={`p-4 rounded-xl border transition text-left flex flex-col ${activeFilter === 'Denied' ? 'bg-red-50 border-red-500 shadow-sm ring-1 ring-red-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+      >
+        <span className="text-xs font-bold uppercase text-gray-500">No of Denied</span>
+        <span className="text-3xl font-extrabold text-red-700 mt-1">{deniedApps}</span>
+      </button>
+
+      <button 
+        onClick={() => setActiveFilter('Pending')}
+        className={`p-4 rounded-xl border transition text-left flex flex-col ${activeFilter === 'Pending' ? 'bg-amber-50 border-amber-500 shadow-sm ring-1 ring-amber-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+      >
+        <span className="text-xs font-bold uppercase text-gray-500">No of Pending</span>
+        <span className="text-3xl font-extrabold text-amber-700 mt-1">{pendingApps}</span>
+      </button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
-      {/* Top Header */}
       <header className="bg-emerald-900 text-white shadow-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-3 overflow-hidden">
@@ -339,73 +384,91 @@ export default function Home() {
         
         {/* TRADER VIEW */}
         {session.role === 'trader' && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Trader Dashboard - {session.name}</h3>
-                <p className="text-xs text-gray-500">Track application progress step-by-step or submit new Form M trade documentation.</p>
+                <p className="text-xs text-gray-500">Filter your applications by state or submit a new application.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                 <input 
                   type="text" 
-                  placeholder="Search Application..." 
+                  placeholder="Search ID, Product..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none flex-grow sm:flex-grow-0"
                 />
                 <button 
                   onClick={() => setShowNewAppModal(true)}
-                  className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition shadow"
+                  className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition shadow whitespace-nowrap"
                 >
                   + New Application
                 </button>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[650px]">
-                <thead>
-                  <tr className="border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase">
-                    <th className="py-3 px-4">Application ID</th>
-                    <th className="py-3 px-4">Type</th>
-                    <th className="py-3 px-4">Product / HS Code</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Process Flow</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm">
-                  {filteredApps.filter(app => app.company === session.name || app.company === 'ABC Manufacturing Ltd').map(app => (
-                    <tr key={app.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td>
-                      <td className="py-3 px-4">{app.type}</td>
-                      <td className="py-3 px-4">{app.product} <br/> <span className="font-mono text-xs text-gray-400">{app.hsCode}</span></td>
-                      <td className="py-3 px-4">{getStatusBadge(app.status)}</td>
-                      <td className="py-3 px-4">
-                        <button 
-                          onClick={() => setTrackedApp(app)}
-                          className="bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-800 transition flex items-center space-x-1.5 shadow-sm"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                          </svg>
-                          <span>Track Live Status</span>
-                        </button>
-                      </td>
+            <FilterDashboard />
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[650px]">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
+                      <th className="py-3 px-4">Application ID</th>
+                      <th className="py-3 px-4">Type</th>
+                      <th className="py-3 px-4">Product / HS Code</th>
+                      <th className="py-3 px-4">Current State</th>
+                      <th className="py-3 px-4">Process Flow</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="text-sm divide-y divide-gray-100">
+                    {displayedApps.length > 0 ? displayedApps.map(app => (
+                      <tr key={app.id} className="hover:bg-gray-50">
+                        <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td>
+                        <td className="py-3 px-4">{app.type}</td>
+                        <td className="py-3 px-4">{app.product} <br/> <span className="font-mono text-xs text-gray-400">{app.hsCode}</span></td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider
+                            ${app.status === 'Approved' ? 'bg-green-100 text-green-800' : ''}
+                            ${app.status === 'Denied' ? 'bg-red-100 text-red-800' : ''}
+                            ${app.status === 'Pending' ? 'bg-amber-100 text-amber-800' : ''}
+                          `}>
+                            {app.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <button 
+                            onClick={() => setTrackedApp(app)}
+                            className="bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-800 transition flex items-center space-x-1.5 shadow-sm"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            <span>Track Status</span>
+                          </button>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan="5" className="py-8 text-center text-gray-400 text-sm">
+                          No applications found for the selected state.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
 
         {/* AGENCY VIEW */}
         {session.role === 'agency' && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Customs Regulatory & Review Console</h3>
-                <p className="text-xs text-gray-500">Inspect commercial documentation and trigger step-by-step workflow status updates.</p>
+                <p className="text-xs text-gray-500">Filter applications by state to manage your approval queue.</p>
               </div>
               <input 
                 type="text" 
@@ -415,44 +478,63 @@ export default function Home() {
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none w-full sm:w-auto"
               />
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[700px]">
-                <thead>
-                  <tr className="border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase">
-                    <th className="py-3 px-4">Application ID</th>
-                    <th className="py-3 px-4">Company</th>
-                    <th className="py-3 px-4">Product / HS Code</th>
-                    <th className="py-3 px-4">Current Status</th>
-                    <th className="py-3 px-4">Actions & Timeline</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm">
-                  {filteredApps.map(app => (
-                    <tr key={app.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td>
-                      <td className="py-3 px-4">{app.company}</td>
-                      <td className="py-3 px-4">{app.product} <span className="block text-xs font-mono text-gray-400">{app.hsCode}</span></td>
-                      <td className="py-3 px-4">{getStatusBadge(app.status)}</td>
-                      <td className="py-3 px-4 space-x-2 whitespace-nowrap">
-                        <button 
-                          onClick={() => setTrackedApp(app)}
-                          className="bg-emerald-700 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-emerald-800 transition"
-                        >
-                          Flow Box
-                        </button>
-                        {app.status === 'Pending Review' ? (
-                          <>
-                            <button onClick={() => handleAgencyAction(app.id, 'Approve')} className="bg-green-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-green-700 transition">Approve</button>
-                            <button onClick={() => handleAgencyAction(app.id, 'Query')} className="bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-red-700 transition">Query</button>
-                          </>
-                        ) : (
-                          <span className="text-gray-400 text-xs italic font-medium">Processed</span>
-                        )}
-                      </td>
+
+            <FilterDashboard />
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[700px]">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
+                      <th className="py-3 px-4">Application ID</th>
+                      <th className="py-3 px-4">Company</th>
+                      <th className="py-3 px-4">Product / HS Code</th>
+                      <th className="py-3 px-4">Current State</th>
+                      <th className="py-3 px-4">Actions & Flow</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="text-sm divide-y divide-gray-100">
+                    {displayedApps.length > 0 ? displayedApps.map(app => (
+                      <tr key={app.id} className="hover:bg-gray-50">
+                        <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td>
+                        <td className="py-3 px-4">{app.company}</td>
+                        <td className="py-3 px-4">{app.product} <span className="block text-xs font-mono text-gray-400">{app.hsCode}</span></td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider
+                            ${app.status === 'Approved' ? 'bg-green-100 text-green-800' : ''}
+                            ${app.status === 'Denied' ? 'bg-red-100 text-red-800' : ''}
+                            ${app.status === 'Pending' ? 'bg-amber-100 text-amber-800' : ''}
+                          `}>
+                            {app.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 space-x-2 whitespace-nowrap">
+                          <button 
+                            onClick={() => setTrackedApp(app)}
+                            className="bg-emerald-700 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-emerald-800 transition shadow-sm"
+                          >
+                            Flow Box
+                          </button>
+                          {app.status === 'Pending' ? (
+                            <>
+                              <button onClick={() => handleAgencyAction(app.id, 'Approved')} className="bg-green-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-green-700 transition shadow-sm">Approve</button>
+                              <button onClick={() => handleAgencyAction(app.id, 'Denied')} className="bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-red-700 transition shadow-sm">Deny</button>
+                            </>
+                          ) : (
+                            <span className="text-gray-400 text-xs italic font-medium">Completed</span>
+                          )}
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan="5" className="py-8 text-center text-gray-400 text-sm">
+                          No applications found for the selected state.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -476,58 +558,33 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Platform Trade Metrics</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                  <span className="text-xs text-emerald-700 font-semibold uppercase">Total Applications</span>
-                  <h4 className="text-3xl font-extrabold text-emerald-900 mt-1">{totalApps}</h4>
-                </div>
-                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                  <span className="text-xs text-green-700 font-semibold uppercase">Approved Permits</span>
-                  <h4 className="text-3xl font-extrabold text-green-900 mt-1">{approvedApps}</h4>
-                </div>
-                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
-                  <span className="text-xs text-amber-700 font-semibold uppercase">Pending Review</span>
-                  <h4 className="text-3xl font-extrabold text-amber-900 mt-1">{pendingApps}</h4>
-                </div>
-                <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                  <span className="text-xs text-red-700 font-semibold uppercase">Queried / Flagged</span>
-                  <h4 className="text-3xl font-extrabold text-red-900 mt-1">{queriedApps}</h4>
-                </div>
-              </div>
-            </div>
+            {/* Global Metric Filters for Admin */}
+            <FilterDashboard />
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">User Account & Access Control</h4>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+              <div className="p-4 bg-gray-50 border-b border-gray-200">
+                 <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Global Application View</h4>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase">
-                      <th className="py-3 px-4">Entity Name</th>
-                      <th className="py-3 px-4">Email</th>
-                      <th className="py-3 px-4">Role</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4">Action</th>
+                    <tr className="bg-white border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
+                      <th className="py-3 px-4">ID</th>
+                      <th className="py-3 px-4">Company</th>
+                      <th className="py-3 px-4">Type</th>
+                      <th className="py-3 px-4">State</th>
                     </tr>
                   </thead>
-                  <tbody className="text-sm">
-                    {systemUsers.map(user => (
-                      <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium text-gray-900">{user.name}</td>
-                        <td className="py-3 px-4 text-xs text-gray-600">{user.email}</td>
-                        <td className="py-3 px-4 text-xs font-bold text-emerald-800">{user.role}</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {user.status}
+                  <tbody className="text-sm divide-y divide-gray-100 bg-white">
+                    {displayedApps.map(app => (
+                      <tr key={app.id}>
+                        <td className="py-2 px-4 font-medium text-emerald-700">{app.id}</td>
+                        <td className="py-2 px-4">{app.company}</td>
+                        <td className="py-2 px-4">{app.type}</td>
+                        <td className="py-2 px-4">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${app.status === 'Approved' ? 'bg-green-100 text-green-800' : app.status === 'Denied' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {app.status}
                           </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          {user.status === 'Pending Approval' ? (
-                            <button onClick={() => handleApproveUser(user.id)} className="bg-emerald-700 text-white px-3 py-1 rounded text-xs font-bold hover:bg-emerald-800 transition">Approve Access</button>
-                          ) : (
-                            <span className="text-gray-400 text-xs">Verified</span>
-                          )}
                         </td>
                       </tr>
                     ))}
@@ -574,161 +631,89 @@ export default function Home() {
       {trackedApp && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100">
-            {/* Modal Header */}
             <div className="bg-emerald-900 text-white p-5 flex justify-between items-start">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-300 block mb-1">Transaction Flow Status</span>
                 <h3 className="text-lg font-extrabold">{trackedApp.id}</h3>
                 <p className="text-xs text-emerald-200 mt-0.5">{trackedApp.product} ({trackedApp.quantity})</p>
               </div>
-              <button 
-                onClick={() => setTrackedApp(null)}
-                className="text-white hover:text-emerald-300 font-bold text-xl leading-none"
-              >
-                ×
-              </button>
+              <button onClick={() => setTrackedApp(null)} className="text-white hover:text-emerald-300 font-bold text-xl leading-none">×</button>
             </div>
 
-            {/* OPay Style Process Flow Box */}
             <div className="p-6 bg-gray-50 max-h-[75vh] overflow-y-auto">
               <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-0">
                 
-                {/* STEP 1: Application Submitted */}
+                {/* STEP 1 */}
                 <div className="relative pl-8 pb-8">
-                  {/* Connecting Line */}
                   <div className="absolute left-3.5 top-6 bottom-0 w-0.5 bg-emerald-500"></div>
-                  {/* Step Node */}
-                  <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">
-                    ✓
-                  </div>
-                  {/* Content */}
+                  <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
                   <div>
                     <h5 className="text-sm font-bold text-gray-900">Application Submitted</h5>
-                    <p className="text-xs text-gray-600 mt-0.5">Form M & Trade documentation uploaded by {trackedApp.company}</p>
+                    <p className="text-xs text-gray-600 mt-0.5">Documentation uploaded by {trackedApp.company}</p>
                     <span className="text-[10px] text-emerald-700 font-semibold mt-1 block">{trackedApp.submittedAt}</span>
                   </div>
                 </div>
 
-                {/* STEP 2: Gateway Data Validation */}
+                {/* STEP 2 */}
                 <div className="relative pl-8 pb-8">
-                  {/* Connecting Line */}
-                  <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${trackedApp.status !== 'Pending Review' ? 'bg-emerald-500' : 'bg-emerald-500'}`}></div>
-                  {/* Step Node */}
-                  <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">
-                    ✓
-                  </div>
-                  {/* Content */}
+                  <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${trackedApp.status !== 'Pending' ? 'bg-emerald-500' : 'bg-emerald-500'}`}></div>
+                  <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
                   <div>
                     <h5 className="text-sm font-bold text-gray-900">Gateway Data Validation</h5>
-                    <p className="text-xs text-gray-600 mt-0.5">Automated HS Code ({trackedApp.hsCode}) compliance check complete</p>
-                    <span className="text-[10px] text-emerald-700 font-semibold mt-1 block">Validated by NSW Engine</span>
+                    <p className="text-xs text-gray-600 mt-0.5">HS Code ({trackedApp.hsCode}) compliance checked</p>
                   </div>
                 </div>
 
-                {/* STEP 3: Customs & Agency Review */}
+                {/* STEP 3 */}
                 <div className="relative pl-8 pb-8">
-                  {/* Connecting Line */}
-                  <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${trackedApp.status === 'Approved' ? 'bg-emerald-500' : trackedApp.status === 'Queried' ? 'bg-red-300' : 'bg-gray-200'}`}></div>
-                  {/* Step Node */}
-                  {trackedApp.status === 'Pending Review' ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold ring-4 ring-amber-100 animate-pulse">
-                      •
-                    </div>
+                  <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${trackedApp.status === 'Approved' ? 'bg-emerald-500' : trackedApp.status === 'Denied' ? 'bg-red-300' : 'bg-gray-200'}`}></div>
+                  {trackedApp.status === 'Pending' ? (
+                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold ring-4 ring-amber-100 animate-pulse">•</div>
                   ) : trackedApp.status === 'Approved' ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">
-                      ✓
-                    </div>
+                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
                   ) : (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shadow">
-                      !
-                    </div>
+                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shadow">!</div>
                   )}
-                  {/* Content */}
                   <div>
                     <h5 className="text-sm font-bold text-gray-900">Customs & Regulatory Review</h5>
                     <p className="text-xs text-gray-600 mt-0.5">
-                      {trackedApp.status === 'Pending Review' && 'Currently being inspected by Nigeria Customs Service'}
-                      {trackedApp.status === 'Approved' && 'Document verification completed and verified'}
-                      {trackedApp.status === 'Queried' && 'Queried by officer: Missing tax identification certificate'}
-                    </p>
-                    <span className={`text-[10px] font-semibold mt-1 block ${trackedApp.status === 'Pending Review' ? 'text-amber-600 font-bold' : trackedApp.status === 'Approved' ? 'text-emerald-700' : 'text-red-600'}`}>
-                      {trackedApp.status === 'Pending Review' ? 'Processing in progress...' : 'Review Completed'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* STEP 4: Clearance & Final Decision */}
-                <div className="relative pl-8 pb-8">
-                  {/* Connecting Line */}
-                  <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${trackedApp.status === 'Approved' ? 'bg-emerald-500' : 'bg-gray-200'}`}></div>
-                  {/* Step Node */}
-                  {trackedApp.status === 'Approved' ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">
-                      ✓
-                    </div>
-                  ) : trackedApp.status === 'Queried' ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-100 border-2 border-red-500 text-red-600 flex items-center justify-center text-xs font-bold">
-                      ✕
-                    </div>
-                  ) : (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-gray-100 border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-bold">
-                      4
-                    </div>
-                  )}
-                  {/* Content */}
-                  <div>
-                    <h5 className={`text-sm font-bold ${trackedApp.status === 'Pending Review' ? 'text-gray-400' : 'text-gray-900'}`}>
-                      Clearance & Regulatory Approval
-                    </h5>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {trackedApp.status === 'Approved' ? 'Duty payment & regulatory assessment cleared' : trackedApp.status === 'Queried' ? 'Application flagged for review' : 'Awaiting agency decision'}
+                      {trackedApp.status === 'Pending' && 'Currently being inspected by Agency'}
+                      {trackedApp.status === 'Approved' && 'Document verification completed'}
+                      {trackedApp.status === 'Denied' && 'Denied: Missing regulatory clearance'}
                     </p>
                   </div>
                 </div>
 
-                {/* STEP 5: Permit Generation & Release */}
+                {/* STEP 4 */}
                 <div className="relative pl-8">
-                  {/* Step Node */}
                   {trackedApp.status === 'Approved' ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow ring-4 ring-emerald-100">
-                      ✓
-                    </div>
+                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow ring-4 ring-emerald-100">✓</div>
+                  ) : trackedApp.status === 'Denied' ? (
+                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-100 border-2 border-red-500 text-red-600 flex items-center justify-center text-xs font-bold">✕</div>
                   ) : (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-gray-100 border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-bold">
-                      5
-                    </div>
+                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-gray-100 border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-bold">4</div>
                   )}
-                  {/* Content */}
                   <div>
                     <h5 className={`text-sm font-bold ${trackedApp.status === 'Approved' ? 'text-emerald-900 font-extrabold' : 'text-gray-400'}`}>
-                      Official Trade Permit Issued
+                      Final Gateway Decision
                     </h5>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {trackedApp.status === 'Approved' ? 'Digital Permit released to Trader Portal & Port Terminal' : 'Pending final approval'}
+                      {trackedApp.status === 'Approved' ? 'Digital Permit released successfully' : trackedApp.status === 'Denied' ? 'Application rejected' : 'Awaiting final state'}
                     </p>
                   </div>
                 </div>
 
               </div>
             </div>
-
-            {/* Modal Footer / Quick Agency Action */}
-            <div className="bg-white px-6 py-4 border-t border-gray-200 flex justify-between items-center">
-              <span className="text-xs text-gray-500 font-medium">Ref: {trackedApp.hsCode}</span>
-              <div className="space-x-2">
-                {session.role === 'agency' && trackedApp.status === 'Pending Review' && (
-                  <>
-                    <button onClick={() => handleAgencyAction(trackedApp.id, 'Approve')} className="bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-800 transition">Approve Permit</button>
-                    <button onClick={() => handleAgencyAction(trackedApp.id, 'Query')} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 transition">Query Issue</button>
-                  </>
-                )}
-                <button 
-                  onClick={() => setTrackedApp(null)} 
-                  className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition"
-                >
-                  Close
-                </button>
-              </div>
+            
+            <div className="bg-white px-6 py-4 border-t border-gray-200 flex justify-end items-center space-x-2">
+              {session.role === 'agency' && trackedApp.status === 'Pending' && (
+                <>
+                  <button onClick={() => handleAgencyAction(trackedApp.id, 'Approved')} className="bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-800 transition">Approve</button>
+                  <button onClick={() => handleAgencyAction(trackedApp.id, 'Denied')} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 transition">Deny</button>
+                </>
+              )}
+              <button onClick={() => setTrackedApp(null)} className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Close Window</button>
             </div>
           </div>
         </div>
@@ -757,51 +742,19 @@ export default function Home() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Product Description</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g., Heavy Industrial Generator" 
-                  value={newAppProduct}
-                  onChange={(e) => setNewAppProduct(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
+                <input type="text" required placeholder="e.g., Heavy Industrial Generator" value={newAppProduct} onChange={(e) => setNewAppProduct(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity & Units</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g., 5 Units / 100 Metric Tons" 
-                  value={newAppQuantity}
-                  onChange={(e) => setNewAppQuantity(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
+                <input type="text" required placeholder="e.g., 5 Units / 100 Metric Tons" value={newAppQuantity} onChange={(e) => setNewAppQuantity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Harmonized System (HS) Code</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g., 8502.11.00" 
-                  value={newAppHsCode}
-                  onChange={(e) => setNewAppHsCode(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
+                <input type="text" required placeholder="e.g., 8502.11.00" value={newAppHsCode} onChange={(e) => setNewAppHsCode(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" />
               </div>
               <div className="flex justify-end space-x-3 pt-2">
-                <button 
-                  type="button" 
-                  onClick={() => setShowNewAppModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-900 transition shadow"
-                >
-                  Submit Application
-                </button>
+                <button type="button" onClick={() => setShowNewAppModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button type="submit" className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-900 transition shadow">Submit Application</button>
               </div>
             </form>
           </div>
