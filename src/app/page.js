@@ -62,6 +62,16 @@ export default function Home() {
       hsCode: '3824.99.99', 
       status: 'Denied',
       submittedAt: '17 Aug 2026, 09:40 WAT'
+    },
+    { 
+      id: 'NSW-2026-0005', 
+      company: 'ABC Manufacturing Ltd', 
+      type: 'Import Permit', 
+      product: 'Heavy Industrial Generator', 
+      quantity: '100 Metric Tons', 
+      hsCode: '8502.11.00', 
+      status: 'Pending',
+      submittedAt: '18 Aug 2026, 09:00 WAT'
     }
   ]);
 
@@ -91,6 +101,10 @@ export default function Home() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const isPending = (status) => status && (status.toLowerCase().includes('pending') || status.toLowerCase().includes('review'));
+  const isApproved = (status) => status && status.toLowerCase().includes('approved');
+  const isDenied = (status) => status && (status.toLowerCase().includes('denied') || status.toLowerCase().includes('rejected'));
+
   const getRoleApplications = () => {
     if (!session) return [];
     if (session.role === 'trader') return applications.filter(app => app.company === session.name || app.company === 'ABC Manufacturing Ltd');
@@ -99,15 +113,20 @@ export default function Home() {
 
   const roleApps = getRoleApplications();
   const totalApps = roleApps.length;
-  const approvedApps = roleApps.filter(a => a.status === 'Approved').length;
-  const deniedApps = roleApps.filter(a => a.status === 'Denied').length;
-  const pendingApps = roleApps.filter(a => a.status === 'Pending').length;
+  const approvedApps = roleApps.filter(a => isApproved(a.status)).length;
+  const deniedApps = roleApps.filter(a => isDenied(a.status)).length;
+  const pendingApps = roleApps.filter(a => isPending(a.status)).length;
 
   const displayedApps = roleApps.filter(app => {
     const matchesSearch = app.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           app.product.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = activeFilter === 'All' || app.status === activeFilter;
+    
+    let matchesFilter = true;
+    if (activeFilter === 'Approved') matchesFilter = isApproved(app.status);
+    else if (activeFilter === 'Denied') matchesFilter = isDenied(app.status);
+    else if (activeFilter === 'Pending') matchesFilter = isPending(app.status);
+
     return matchesSearch && matchesFilter;
   });
 
@@ -414,9 +433,9 @@ export default function Home() {
                         <td className="py-3 px-4">{app.product} <br/> <span className="font-mono text-xs text-gray-400">{app.hsCode}</span></td>
                         <td className="py-3 px-4">
                           <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider
-                            ${app.status === 'Approved' ? 'bg-green-100 text-green-800' : ''}
-                            ${app.status === 'Denied' ? 'bg-red-100 text-red-800' : ''}
-                            ${app.status === 'Pending' ? 'bg-amber-100 text-amber-800' : ''}
+                            ${isApproved(app.status) ? 'bg-green-100 text-green-800' : ''}
+                            ${isDenied(app.status) ? 'bg-red-100 text-red-800' : ''}
+                            ${isPending(app.status) ? 'bg-amber-100 text-amber-800' : ''}
                           `}>
                             {app.status}
                           </span>
@@ -485,9 +504,9 @@ export default function Home() {
                         <td className="py-3 px-4">{app.product} <span className="block text-xs font-mono text-gray-400">{app.hsCode}</span></td>
                         <td className="py-3 px-4">
                           <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider
-                            ${app.status === 'Approved' ? 'bg-green-100 text-green-800' : ''}
-                            ${app.status === 'Denied' ? 'bg-red-100 text-red-800' : ''}
-                            ${app.status === 'Pending' ? 'bg-amber-100 text-amber-800' : ''}
+                            ${isApproved(app.status) ? 'bg-green-100 text-green-800' : ''}
+                            ${isDenied(app.status) ? 'bg-red-100 text-red-800' : ''}
+                            ${isPending(app.status) ? 'bg-amber-100 text-amber-800' : ''}
                           `}>
                             {app.status}
                           </span>
@@ -499,7 +518,7 @@ export default function Home() {
                           >
                             Flow Box
                           </button>
-                          {app.status === 'Pending' ? (
+                          {isPending(app.status) ? (
                             <>
                               <button onClick={() => handleAgencyAction(app.id, 'Approved')} className="bg-green-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-green-700 transition shadow-sm">Approve</button>
                               <button onClick={() => handleAgencyAction(app.id, 'Denied')} className="bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-red-700 transition shadow-sm">Deny</button>
@@ -564,7 +583,7 @@ export default function Home() {
                         <td className="py-2 px-4">{app.company}</td>
                         <td className="py-2 px-4">{app.type}</td>
                         <td className="py-2 px-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${app.status === 'Approved' ? 'bg-green-100 text-green-800' : app.status === 'Denied' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isApproved(app.status) ? 'bg-green-100 text-green-800' : isDenied(app.status) ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
                             {app.status}
                           </span>
                         </td>
@@ -644,10 +663,10 @@ export default function Home() {
                 </div>
 
                 <div className="relative pl-8 pb-8">
-                  <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${trackedApp.status === 'Approved' ? 'bg-emerald-500' : trackedApp.status === 'Denied' ? 'bg-red-300' : 'bg-gray-200'}`}></div>
-                  {trackedApp.status === 'Pending' ? (
+                  <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${isApproved(trackedApp.status) ? 'bg-emerald-500' : isDenied(trackedApp.status) ? 'bg-red-300' : 'bg-gray-200'}`}></div>
+                  {isPending(trackedApp.status) ? (
                     <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold ring-4 ring-amber-100 animate-pulse">•</div>
-                  ) : trackedApp.status === 'Approved' ? (
+                  ) : isApproved(trackedApp.status) ? (
                     <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
                   ) : (
                     <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shadow">!</div>
@@ -655,27 +674,27 @@ export default function Home() {
                   <div>
                     <h5 className="text-sm font-bold text-gray-900">Customs & Regulatory Review</h5>
                     <p className="text-xs text-gray-600 mt-0.5">
-                      {trackedApp.status === 'Pending' && 'Currently being inspected by Agency'}
-                      {trackedApp.status === 'Approved' && 'Document verification completed'}
-                      {trackedApp.status === 'Denied' && 'Denied: Missing regulatory clearance'}
+                      {isPending(trackedApp.status) && 'Currently being inspected by Agency'}
+                      {isApproved(trackedApp.status) && 'Document verification completed'}
+                      {isDenied(trackedApp.status) && 'Denied: Missing regulatory clearance'}
                     </p>
                   </div>
                 </div>
 
                 <div className="relative pl-8">
-                  {trackedApp.status === 'Approved' ? (
+                  {isApproved(trackedApp.status) ? (
                     <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow ring-4 ring-emerald-100">✓</div>
-                  ) : trackedApp.status === 'Denied' ? (
+                  ) : isDenied(trackedApp.status) ? (
                     <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-100 border-2 border-red-500 text-red-600 flex items-center justify-center text-xs font-bold">✕</div>
                   ) : (
                     <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-gray-100 border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-bold">4</div>
                   )}
                   <div>
-                    <h5 className={`text-sm font-bold ${trackedApp.status === 'Approved' ? 'text-emerald-900 font-extrabold' : 'text-gray-400'}`}>
+                    <h5 className={`text-sm font-bold ${isApproved(trackedApp.status) ? 'text-emerald-900 font-extrabold' : 'text-gray-400'}`}>
                       Final Gateway Decision
                     </h5>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {trackedApp.status === 'Approved' ? 'Digital Permit released successfully' : trackedApp.status === 'Denied' ? 'Application rejected' : 'Awaiting final state'}
+                      {isApproved(trackedApp.status) ? 'Digital Permit released successfully' : isDenied(trackedApp.status) ? 'Application rejected' : 'Awaiting final state'}
                     </p>
                   </div>
                 </div>
@@ -684,7 +703,7 @@ export default function Home() {
             </div>
             
             <div className="bg-white px-6 py-4 border-t border-gray-200 flex justify-end items-center space-x-2">
-              {session.role === 'agency' && trackedApp.status === 'Pending' && (
+              {session.role === 'agency' && isPending(trackedApp.status) && (
                 <>
                   <button onClick={() => handleAgencyAction(trackedApp.id, 'Approved')} className="bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-800 transition">Approve</button>
                   <button onClick={() => handleAgencyAction(trackedApp.id, 'Denied')} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 transition">Deny</button>
