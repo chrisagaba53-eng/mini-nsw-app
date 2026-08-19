@@ -487,7 +487,7 @@ export default function Home() {
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Customs Regulatory & Review Console</h3>
+                <h3 className="text-lg font-bold text-gray-900"> Regulatory & Review Console</h3>
                 <p className="text-xs text-gray-500">Filter applications by state to manage your approval queue.</p>
               </div>
               <input 
