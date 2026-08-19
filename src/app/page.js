@@ -29,7 +29,7 @@ export default function Home() {
 
   const [auditLogs, setAuditLogs] = useState([
     { id: 1, action: 'User authentication verified', role: 'TRADER', time: '08:30 WAT' },
-    { id: 2, action: 'agency clearance processed', role: 'AGENCY', time: '09:05 WAT' }
+    { id: 2, action: 'Agency clearance processed', role: 'AGENCY', time: '09:05 WAT' }
   ]);
   
   const [applications, setApplications] = useState([
@@ -741,7 +741,7 @@ export default function Home() {
                     <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shadow">!</div>
                   )}
                   <div>
-                    <h5 className="text-sm font-bold text-gray-900">agency & Regulatory Review</h5>
+                    <h5 className="text-sm font-bold text-gray-900">Agency & Regulatory Review</h5>
                     <p className="text-xs text-gray-600 mt-0.5">
                       {isPending(trackedApp.status) && 'Currently being inspected by Agency'}
                       {isApproved(trackedApp.status) && 'Document verification completed'}
@@ -785,7 +785,7 @@ export default function Home() {
             </div>
             
             <div className="bg-white px-6 py-4 border-t border-gray-200 flex justify-end items-center space-x-2">
-              {session.role === 'agency' && isPending(trackedApp.status) && (
+              {session.role === 'Agency' && isPending(trackedApp.status) && (
                 <>
                   <button onClick={() => handleAgencyAction(trackedApp.id, 'Approved')} className="bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-800 transition">Approve</button>
                   <button onClick={() => handleAgencyAction(trackedApp.id, 'Denied')} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 transition">Deny</button>
