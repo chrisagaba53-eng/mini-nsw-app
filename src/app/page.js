@@ -22,14 +22,14 @@ export default function Home() {
   const [gatewayStatus, setGatewayStatus] = useState('Operational');
   const [systemUsers, setSystemUsers] = useState([
     { id: 1, name: 'ABC Manufacturing Ltd', email: 'trader@abc.com', role: 'Trader', status: 'Active' },
-    { id: 2, name: 'Customs Officer J. Adebayo', email: 'customs@nsw.gov.ng', role: 'Agency', status: 'Active' },
+    { id: 2, name: 'agency Officer J. Adebayo', email: 'agency@nsw.gov.ng', role: 'Agency', status: 'Active' },
     { id: 3, name: 'Global Trade Co', email: 'trader2@global.com', role: 'Trader', status: 'Pending Approval' }
   ]);
   const [broadcastMessage, setBroadcastMessage] = useState('');
 
   const [auditLogs, setAuditLogs] = useState([
     { id: 1, action: 'User authentication verified', role: 'TRADER', time: '08:30 WAT' },
-    { id: 2, action: 'Customs clearance processed', role: 'AGENCY', time: '09:05 WAT' }
+    { id: 2, action: 'agency clearance processed', role: 'AGENCY', time: '09:05 WAT' }
   ]);
   
   const [applications, setApplications] = useState([
@@ -138,8 +138,8 @@ export default function Home() {
 
     if (email === 'trader@abc.com' && pwd === 'password123') {
       setSession({ role: 'trader', name: 'ABC Manufacturing Ltd', email: 'trader@abc.com' });
-    } else if (email === 'customs@nsw.gov.ng' && pwd === 'secure2026') {
-      setSession({ role: 'agency', name: 'Customs Officer (J. Adebayo)', email: 'customs@nsw.gov.ng' });
+    } else if (email === 'agency@nsw.gov.ng' && pwd === 'secure2026') {
+      setSession({ role: 'agency', name: 'agency Officer (J. Adebayo)', email: 'agency@nsw.gov.ng' });
     } else if (email === 'admin@nsw.gov.ng' && pwd === 'admin2026') {
       setSession({ role: 'admin', name: 'Platform Administrator', email: 'admin@nsw.gov.ng' });
     } else {
@@ -196,7 +196,7 @@ export default function Home() {
 
     const newNotif = {
       id: Date.now(),
-      text: `Application ${appId} has been ${updatedStatus.toLowerCase()} by Customs.`,
+      text: `Application ${appId} has been ${updatedStatus.toLowerCase()} by agency.`,
       time: 'Just now',
       read: false
     };
@@ -267,7 +267,7 @@ export default function Home() {
               <input 
                 type="email" 
                 required
-                placeholder="trader@abc.com or customs@nsw.gov.ng" 
+                placeholder="trader@abc.com or agency@nsw.gov.ng" 
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
@@ -296,7 +296,7 @@ export default function Home() {
 
           <div className="mt-6 pt-4 border-t border-gray-100 text-center text-[11px] text-gray-400 space-y-1">
             <p>Demo Traders: <code className="text-emerald-700">trader@abc.com</code> / <code className="text-emerald-700">password123</code></p>
-            <p>Demo Agency: <code className="text-emerald-700">customs@nsw.gov.ng</code> / <code className="text-emerald-700">secure2026</code></p>
+            <p>Demo Agency: <code className="text-emerald-700">agency@nsw.gov.ng</code> / <code className="text-emerald-700">secure2026</code></p>
             <p>Demo Admin: <code className="text-emerald-700">admin@nsw.gov.ng</code> / <code className="text-emerald-700">admin2026</code></p>
           </div>
         </div>
@@ -610,7 +610,7 @@ export default function Home() {
                             onClick={() => handleForceDeleteApp(app.id)}
                             className="text-red-600 hover:text-red-800 text-[10px] font-bold uppercase border border-red-200 bg-red-50 hover:bg-red-100 px-2 py-1 rounded transition"
                           >
-                            Force Purge
+                            Force Audit Log
                           </button>
                         </td>
                       </tr>
@@ -741,7 +741,7 @@ export default function Home() {
                     <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shadow">!</div>
                   )}
                   <div>
-                    <h5 className="text-sm font-bold text-gray-900">Customs & Regulatory Review</h5>
+                    <h5 className="text-sm font-bold text-gray-900">agency & Regulatory Review</h5>
                     <p className="text-xs text-gray-600 mt-0.5">
                       {isPending(trackedApp.status) && 'Currently being inspected by Agency'}
                       {isApproved(trackedApp.status) && 'Document verification completed'}
@@ -760,7 +760,7 @@ export default function Home() {
                   )}
                   <div>
                     <h5 className={`text-sm font-bold ${isApproved(trackedApp.status) ? 'text-emerald-900 font-extrabold' : 'text-gray-400'}`}>
-                      Final Gateway Decision
+                      Final Decision
                     </h5>
                     <p className="text-xs text-gray-500 mt-0.5">
                       {isApproved(trackedApp.status) ? 'Digital Permit released successfully' : isDenied(trackedApp.status) ? 'Application rejected' : 'Awaiting final state'}
