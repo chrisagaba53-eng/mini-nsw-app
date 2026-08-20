@@ -55,6 +55,7 @@ export default function SingleWindowPortal() {
   const [trackedApp, setTrackedApp] = useState(null);
   const [showNewAppModal, setShowNewAppModal] = useState(false);
   const [newAppType, setNewAppType] = useState('Import Permit');
+  const [newAppCompany, setNewAppCompany] = useState('');
   const [newAppProduct, setNewAppProduct] = useState('');
   const [newAppQuantity, setNewAppQuantity] = useState('');
   const [newAppFile, setNewAppFile] = useState(null);
@@ -67,7 +68,7 @@ export default function SingleWindowPortal() {
   const handleSecureLogin = (e) => {
     e.preventDefault();
     if (emailInput.includes('trader')) {
-      setSession({ name: 'Apex Logistics', role: 'trader', email: emailInput });
+      setSession({ name: 'Trader Enterprise', role: 'trader', email: emailInput });
     } else if (emailInput.includes('agency') || emailInput.includes('customs')) {
       setSession({ name: 'Customs Regulatory Unit', role: 'agency', email: emailInput });
     } else if (emailInput.includes('admin')) {
@@ -101,17 +102,17 @@ export default function SingleWindowPortal() {
     }
   };
 
-  // Application Submission Handler (HS Code omitted, doc attached)
+  // Application Submission Handler
   const handleFormSubmitApplication = (e) => {
     e.preventDefault();
     const newId = `NSW-2026-${Math.floor(1000 + Math.random() * 9000)}`;
     const newApp = {
       id: newId,
       type: newAppType,
+      company: newAppCompany || session?.name || 'Trader Enterprise',
       product: newAppProduct,
       quantity: newAppQuantity,
       hsCode: '8502.11.00', // Auto-classified by system gateway
-      company: session?.name || 'Trader Enterprise',
       status: 'Pending Review',
       submittedAt: new Date().toISOString().split('T')[0],
       attachedDocument: newAppFile
@@ -123,6 +124,7 @@ export default function SingleWindowPortal() {
       ...auditLogs
     ]);
     setShowNewAppModal(false);
+    setNewAppCompany('');
     setNewAppProduct('');
     setNewAppQuantity('');
     setNewAppFile(null);
@@ -261,9 +263,7 @@ export default function SingleWindowPortal() {
       <header className="bg-emerald-900 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-emerald-800 rounded-lg flex items-center justify-center font-bold text-lg border border-emerald-600">
-              NSW
-            </div>
+            <img src="/logo.png" alt="National Single Window Logo" className="h-10 w-auto object-contain" />
             <div>
               <h1 className="text-base font-extrabold tracking-tight">National Single Window</h1>
               <p className="text-[11px] text-emerald-200">Federal Trade Governance Gateway</p>
@@ -695,7 +695,7 @@ export default function SingleWindowPortal() {
         </div>
       )}
 
-      {/* ---------------- NEW APPLICATION FORM MODAL (HS CODE REMOVED) ---------------- */}
+      {/* ---------------- NEW APPLICATION FORM MODAL ---------------- */}
       {showNewAppModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border-t-8 border-emerald-700">
@@ -715,6 +715,17 @@ export default function SingleWindowPortal() {
                   <option value="Export License">Export License</option>
                   <option value="Transit Goods Clearance">Transit Goods Clearance</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Company / Enterprise Name</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="e.g., Global Freight Ltd" 
+                  value={newAppCompany} 
+                  onChange={(e) => setNewAppCompany(e.target.value)} 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" 
+                />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Product Description</label>
