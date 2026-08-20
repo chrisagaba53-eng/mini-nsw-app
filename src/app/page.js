@@ -69,8 +69,17 @@ export default function SingleWindowPortal() {
   const [viewingPermit, setViewingPermit] = useState(null);
 
   // Authentication Handler
+  // Authentication Handler
   const handleSecureLogin = (e) => {
     e.preventDefault();
+
+    // Check if the user exists in systemUsers and is suspended
+    const targetUser = systemUsers.find(u => u.email.toLowerCase() === emailInput.trim().toLowerCase());
+    if (targetUser && targetUser.status === 'Suspended') {
+      setLoginError('Account Suspended: Access revoked by System Administrator.');
+      return;
+    }
+
     if (emailInput.includes('trader')) {
       setSession({ name: 'Trader Enterprise', role: 'trader', email: emailInput });
     } else if (emailInput.includes('agency') || emailInput.includes('customs')) {
