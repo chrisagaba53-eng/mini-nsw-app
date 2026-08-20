@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function SingleWindowPortal() {
   // System authentication state
@@ -9,6 +9,30 @@ export default function SingleWindowPortal() {
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
 
+  // Admin & Governance state
+  const [systemUsers, setSystemUsers] = useState([
+    { id: 1, name: 'Apex Logistics', email: 'trader@apex.ng', role: 'trader', status: 'Active' },
+    { id: 2, name: 'Customs Officer', email: 'officer@customs.gov.ng', role: 'agency', status: 'Active' },
+    { id: 3, name: 'System Admin', email: 'admin@nsw.gov.ng', role: 'admin', status: 'Active' }
+  ]);
+
+  // Sync users with localStorage so suspension persists across logouts and refreshes
+  useEffect(() => {
+    const savedUsers = localStorage.getItem('nsw_system_users');
+    if (savedUsers) {
+      try {
+        setSystemUsers(JSON.parse(savedUsers));
+      } catch (e) {
+        console.error('Failed to load saved user state', e);
+      }
+    }
+  }, []);
+
+  const updateUsersState = (newUsers) => {
+    setSystemUsers(newUsers);
+    localStorage.setItem('nsw_system_users', JSON.stringify(newUsers));
+  };
+
   // Applications master state
   const [applications, setApplications] = useState([
     {
@@ -16,7 +40,6 @@ export default function SingleWindowPortal() {
       type: 'Import Permit',
       product: 'Industrial Solar Panels',
       quantity: '500 Units',
-      hsCode: '8541.40.00',
       company: 'Apex Logistics Ltd',
       status: 'Pending Review',
       submittedAt: '2026-08-10',
@@ -27,7 +50,6 @@ export default function SingleWindowPortal() {
       type: 'Export License',
       product: 'Raw Cocoa Beans',
       quantity: '50 Metric Tons',
-      hsCode: '1801.00.00',
       company: 'AgroExport Nigeria',
       status: 'Approved',
       submittedAt: '2026-08-12',
@@ -46,14 +68,8 @@ export default function SingleWindowPortal() {
     { id: 2, role: 'Trader', action: 'Application NSW-2026-1042 submitted', time: '09:15 AM' }
   ]);
 
-  // Admin & Governance state
   const [gatewayStatus, setGatewayStatus] = useState('Operational');
   const [broadcastMessage, setBroadcastMessage] = useState('');
-  const [systemUsers, setSystemUsers] = useState([
-    { id: 1, name: 'Apex Logistics', email: 'trader@apex.ng', role: 'trader', status: 'Active' },
-    { id: 2, name: 'Customs Officer', email: 'officer@customs.gov.ng', role: 'agency', status: 'Active' },
-    { id: 3, name: 'System Admin', email: 'admin@nsw.gov.ng', role: 'admin', status: 'Active' }
-  ]);
 
   // Modal & Interactive states
   const [trackedApp, setTrackedApp] = useState(null);
@@ -68,26 +84,26 @@ export default function SingleWindowPortal() {
   const [docPreview, setDocPreview] = useState(null);
   const [viewingPermit, setViewingPermit] = useState(null);
 
-  // Authentication Handler
-  // Authentication Handler
+  // Authentication Handler with Active Enforcement
   const handleSecureLogin = (e) => {
     e.preventDefault();
+    const cleanEmail = emailInput.trim().toLowerCase();
 
-    // Check if the user exists in systemUsers and is suspended
-    const targetUser = systemUsers.find(u => u.email.toLowerCase() === emailInput.trim().toLowerCase());
+    // Enforce account status check
+    const targetUser = systemUsers.find(u => u.email.toLowerCase() === cleanEmail);
     if (targetUser && targetUser.status === 'Suspended') {
       setLoginError('Account Suspended: Access revoked by System Administrator.');
       return;
     }
 
-    if (emailInput.includes('trader')) {
-      setSession({ name: 'Trader Enterprise', role: 'trader', email: emailInput });
-    } else if (emailInput.includes('agency') || emailInput.includes('customs')) {
-      setSession({ name: 'Customs Regulatory Unit', role: 'agency', email: emailInput });
-    } else if (emailInput.includes('admin')) {
-      setSession({ name: 'System Administrator', role: 'admin', email: emailInput });
+    if (cleanEmail.includes('trader')) {
+      setSession({ name: 'Trader Enterprise', role: 'trader', email: cleanEmail });
+    } else if (cleanEmail.includes('agency') || cleanEmail.includes('customs')) {
+      setSession({ name: 'Customs Regulatory Unit', role: 'agency', email: cleanEmail });
+    } else if (cleanEmail.includes('admin')) {
+      setSession({ name: 'System Administrator', role: 'admin', email: cleanEmail });
     } else {
-      setSession({ name: 'Portal User', role: 'trader', email: emailInput });
+      setSession({ name: 'Portal User', role: 'trader', email: cleanEmail });
     }
     setLoginError('');
   };
@@ -96,6 +112,7 @@ export default function SingleWindowPortal() {
     setSession(null);
     setEmailInput('');
     setPasswordInput('');
+    setLoginError('');
   };
 
   // File Upload Handler
@@ -130,7 +147,6 @@ export default function SingleWindowPortal() {
       company: newAppCompany || session?.name || 'Trader Enterprise',
       product: newAppProduct,
       quantity: newAppQuantity,
-      hsCode: '8502.11.00',
       status: 'Pending Review',
       submittedAt: new Date().toISOString().split('T')[0],
       attachedDocument: newAppFile
@@ -166,7 +182,9 @@ export default function SingleWindowPortal() {
   };
 
   const handleUserStatusChange = (userId, newStatus) => {
-    setSystemUsers(systemUsers.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+    const updated = systemUsers.map(u => u.id === userId ? { ...u, status: newStatus } : u);
+    updateUsersState(updated);
+    addLog('Admin', `Updated account status for user ID ${userId} to ${newStatus}`);
   };
 
   const handleSendBroadcast = (e) => {
@@ -361,12 +379,12 @@ export default function SingleWindowPortal() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 relative z-10">
-        {/* TRADER CONSOLE */}
+        {/* TRADER PORTAL */}
         {session.role === 'trader' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Trader Dashboard - {session.name}</h3>
+                <h3 className="text-lg font-bold text-gray-900">Trader Portal - {session.name}</h3>
                 <p className="text-xs text-gray-500">Filter your applications by clicking the metric cards.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
@@ -395,7 +413,7 @@ export default function SingleWindowPortal() {
                     <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
                       <th className="py-3 px-4">Application ID</th>
                       <th className="py-3 px-4">Type</th>
-                      <th className="py-3 px-4">Product / HS Code</th>
+                      <th className="py-3 px-4">Product</th>
                       <th className="py-3 px-4">Current State</th>
                       <th className="py-3 px-4">Process Flow</th>
                     </tr>
@@ -405,7 +423,7 @@ export default function SingleWindowPortal() {
                       <tr key={app.id} className="hover:bg-gray-50">
                         <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td>
                         <td className="py-3 px-4">{app.type}</td>
-                        <td className="py-3 px-4">{app.product} <br/> <span className="font-mono text-xs text-gray-400">{app.hsCode}</span></td>
+                        <td className="py-3 px-4">{app.product}</td>
                         <td className="py-3 px-4">
                           <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider
                             ${isApproved(app.status) ? 'bg-green-100 text-green-800' : ''}
@@ -438,12 +456,12 @@ export default function SingleWindowPortal() {
           </div>
         )}
 
-        {/* AGENCY CONSOLE */}
+        {/* AGENCY PORTAL */}
         {session.role === 'agency' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Regulatory & Review Console</h3>
+                <h3 className="text-lg font-bold text-gray-900">Regulatory & Review Portal</h3>
                 <p className="text-xs text-gray-500">Filter your approval queue by clicking the metric cards.</p>
               </div>
               <input 
@@ -464,7 +482,7 @@ export default function SingleWindowPortal() {
                     <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
                       <th className="py-3 px-4">Application ID</th>
                       <th className="py-3 px-4">Company</th>
-                      <th className="py-3 px-4">Product / HS Code</th>
+                      <th className="py-3 px-4">Product</th>
                       <th className="py-3 px-4">Uploaded File</th>
                       <th className="py-3 px-4">Current State</th>
                       <th className="py-3 px-4">Actions & Flow</th>
@@ -475,7 +493,7 @@ export default function SingleWindowPortal() {
                       <tr key={app.id} className="hover:bg-gray-50">
                         <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td>
                         <td className="py-3 px-4">{app.company}</td>
-                        <td className="py-3 px-4">{app.product} <span className="block text-xs font-mono text-gray-400">{app.hsCode}</span></td>
+                        <td className="py-3 px-4">{app.product}</td>
                         <td className="py-3 px-4">
                           {app.attachedDocument ? (
                             <button 
@@ -528,7 +546,7 @@ export default function SingleWindowPortal() {
           </div>
         )}
 
-        {/* ADMIN CONSOLE */}
+        {/* ADMIN PORTAL */}
         {session.role === 'admin' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -620,10 +638,10 @@ export default function SingleWindowPortal() {
                         </td>
                         <td className="py-3 px-4 space-x-2">
                           {user.status !== 'Active' && (
-                            <button onClick={() => handleUserStatusChange(user.id, 'Active')} className="bg-emerald-600 text-white px-2 py-1 rounded text-[11px] font-bold hover:bg-emerald-700 transition">Authorize</button>
+                            <button onClick={() => handleUserStatusChange(user.id, 'Active')} className="bg-emerald-600 text-white px-2.5 py-1 rounded text-[11px] font-bold hover:bg-emerald-700 transition">Authorize</button>
                           )}
                           {user.status !== 'Suspended' && (
-                            <button onClick={() => handleUserStatusChange(user.id, 'Suspended')} className="bg-gray-800 text-white px-2 py-1 rounded text-[11px] font-bold hover:bg-gray-900 transition">Suspend</button>
+                            <button onClick={() => handleUserStatusChange(user.id, 'Suspended')} className="bg-gray-800 text-white px-2.5 py-1 rounded text-[11px] font-bold hover:bg-gray-900 transition">Suspend</button>
                           )}
                         </td>
                       </tr>
@@ -698,7 +716,7 @@ export default function SingleWindowPortal() {
                   <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
                   <div>
                     <h5 className="text-sm font-bold text-gray-900">Gateway</h5>
-                    <p className="text-xs text-gray-600 mt-0.5">HS Code ({trackedApp.hsCode}) tariff validation passed</p>
+                    <p className="text-xs text-gray-600 mt-0.5">Trade documentation validation passed</p>
                   </div>
                 </div>
 
@@ -887,14 +905,12 @@ export default function SingleWindowPortal() {
                 <tr className="bg-gray-100 text-gray-700 uppercase text-[10px]">
                   <th className="border border-gray-300 p-2">Item Description</th>
                   <th className="border border-gray-300 p-2">Quantity</th>
-                  <th className="border border-gray-300 p-2">Classification</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td className="border border-gray-300 p-2 font-medium">{viewingPermit.product}</td>
                   <td className="border border-gray-300 p-2">{viewingPermit.quantity}</td>
-                  <td className="border border-gray-300 p-2 font-mono">{viewingPermit.hsCode}</td>
                 </tr>
               </tbody>
             </table>
