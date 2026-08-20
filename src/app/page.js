@@ -170,10 +170,7 @@ export default function SingleWindowPortal() {
     addLog('Agency', `Updated ${appId} to ${newStatus}`);
   };
 
-  const handleForceDeleteApp = (appId) => {
-    setApplications(applications.filter(app => app.id !== appId));
-    addLog('Admin', `Force purged ${appId}`);
-  };
+  
 
   const toggleGateway = () => {
     const nextStatus = gatewayStatus === 'Operational' ? 'Maintenance' : 'Operational';
@@ -579,7 +576,7 @@ export default function SingleWindowPortal() {
                       <th className="py-3 px-4">Company</th>
                       <th className="py-3 px-4">Type</th>
                       <th className="py-3 px-4">State</th>
-                      <th className="py-3 px-4">System Override</th>
+                  
                     </tr>
                   </thead>
                   <tbody className="text-sm divide-y divide-gray-100 bg-white">
@@ -598,7 +595,7 @@ export default function SingleWindowPortal() {
                             onClick={() => handleForceDeleteApp(app.id)}
                             className="text-red-600 hover:text-red-800 text-[10px] font-bold uppercase border border-red-200 bg-red-50 hover:bg-red-100 px-2 py-1 rounded transition"
                           >
-                            Force Purge
+                            
                           </button>
                         </td>
                       </tr>
