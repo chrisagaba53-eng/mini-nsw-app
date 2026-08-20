@@ -38,6 +38,14 @@ export default function SingleWindowPortal() {
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Notification & Audit State
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(1);
+  const [auditLogs, setAuditLogs] = useState([
+    { id: 1, role: 'System', action: 'Gateway initialized in Operational mode', time: '08:00 AM' },
+    { id: 2, role: 'Trader', action: 'Application NSW-2026-1042 submitted', time: '09:15 AM' }
+  ]);
+
   // Admin & Governance state
   const [gatewayStatus, setGatewayStatus] = useState('Operational');
   const [broadcastMessage, setBroadcastMessage] = useState('');
@@ -45,10 +53,6 @@ export default function SingleWindowPortal() {
     { id: 1, name: 'Apex Logistics', email: 'trader@apex.ng', role: 'trader', status: 'Active' },
     { id: 2, name: 'Customs Officer', email: 'officer@customs.gov.ng', role: 'agency', status: 'Active' },
     { id: 3, name: 'System Admin', email: 'admin@nsw.gov.ng', role: 'admin', status: 'Active' }
-  ]);
-  const [auditLogs, setAuditLogs] = useState([
-    { id: 1, role: 'System', action: 'Gateway initialized in Operational mode', time: '08:00 AM' },
-    { id: 2, role: 'Trader', action: 'Application NSW-2026-1042 submitted', time: '09:15 AM' }
   ]);
 
   // Modal & Interactive states
@@ -102,6 +106,11 @@ export default function SingleWindowPortal() {
     }
   };
 
+  const addLog = (role, action) => {
+    setAuditLogs(prev => [{ id: Date.now(), role, action, time: new Date().toLocaleTimeString() }, ...prev]);
+    setUnreadCount(prev => prev + 1);
+  };
+
   // Application Submission Handler
   const handleFormSubmitApplication = (e) => {
     e.preventDefault();
@@ -119,10 +128,7 @@ export default function SingleWindowPortal() {
     };
 
     setApplications([newApp, ...applications]);
-    setAuditLogs([
-      { id: Date.now(), role: 'Trader', action: `Submitted application ${newId}`, time: new Date().toLocaleTimeString() },
-      ...auditLogs
-    ]);
+    addLog('Trader', `Submitted application ${newId}`);
     setShowNewAppModal(false);
     setNewAppCompany('');
     setNewAppProduct('');
@@ -136,27 +142,18 @@ export default function SingleWindowPortal() {
     if (trackedApp && trackedApp.id === appId) {
       setTrackedApp({ ...trackedApp, status: newStatus });
     }
-    setAuditLogs([
-      { id: Date.now(), role: 'Agency', action: `Updated ${appId} to ${newStatus}`, time: new Date().toLocaleTimeString() },
-      ...auditLogs
-    ]);
+    addLog('Agency', `Updated ${appId} to ${newStatus}`);
   };
 
   const handleForceDeleteApp = (appId) => {
     setApplications(applications.filter(app => app.id !== appId));
-    setAuditLogs([
-      { id: Date.now(), role: 'Admin', action: `Force purged ${appId}`, time: new Date().toLocaleTimeString() },
-      ...auditLogs
-    ]);
+    addLog('Admin', `Force purged ${appId}`);
   };
 
   const toggleGateway = () => {
     const nextStatus = gatewayStatus === 'Operational' ? 'Maintenance' : 'Operational';
     setGatewayStatus(nextStatus);
-    setAuditLogs([
-      { id: Date.now(), role: 'Admin', action: `Toggled Gateway status to ${nextStatus}`, time: new Date().toLocaleTimeString() },
-      ...auditLogs
-    ]);
+    addLog('Admin', `Toggled Gateway status to ${nextStatus}`);
   };
 
   const handleUserStatusChange = (userId, newStatus) => {
@@ -166,7 +163,7 @@ export default function SingleWindowPortal() {
   const handleSendBroadcast = (e) => {
     e.preventDefault();
     if (!broadcastMessage) return;
-    alert(`Broadcast Sent: ${broadcastMessage}`);
+    addLog('System', `BROADCAST: ${broadcastMessage}`);
     setBroadcastMessage('');
   };
 
@@ -191,20 +188,6 @@ export default function SingleWindowPortal() {
 
   // --- UI COMPONENTS ---
 
-  const FilterDashboard = () => (
-    <div className="flex space-x-2 bg-gray-100 p-1.5 rounded-lg w-fit text-xs font-bold mb-4">
-      {['All', 'Pending', 'Approved', 'Denied'].map(f => (
-        <button
-          key={f}
-          onClick={() => setSelectedFilter(f)}
-          className={`px-3 py-1.5 rounded-md transition ${selectedFilter === f ? 'bg-emerald-800 text-white shadow' : 'text-gray-600 hover:text-gray-900'}`}
-        >
-          {f}
-        </button>
-      ))}
-    </div>
-  );
-
   const DashboardMetrics = () => {
     const total = applications.length;
     const approved = applications.filter(a => isApproved(a.status)).length;
@@ -213,20 +196,32 @@ export default function SingleWindowPortal() {
 
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
-          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">No of Applications</span>
+        <div 
+          onClick={() => setSelectedFilter('All')}
+          className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'All' ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-100' : 'bg-white border-gray-200 hover:border-blue-300'}`}
+        >
+          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Total Applications</span>
           <span className="text-3xl font-extrabold text-blue-700">{total}</span>
         </div>
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
-          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">No of Pending</span>
+        <div 
+          onClick={() => setSelectedFilter('Pending')}
+          className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Pending' ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-100' : 'bg-white border-gray-200 hover:border-amber-300'}`}
+        >
+          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Pending Review</span>
           <span className="text-3xl font-extrabold text-amber-600">{pending}</span>
         </div>
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
-          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">No of Approved</span>
+        <div 
+          onClick={() => setSelectedFilter('Approved')}
+          className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Approved' ? 'bg-green-50 border-green-500 ring-2 ring-green-100' : 'bg-white border-gray-200 hover:border-green-300'}`}
+        >
+          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Approved</span>
           <span className="text-3xl font-extrabold text-green-700">{approved}</span>
         </div>
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
-          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">No of Denied</span>
+        <div 
+          onClick={() => setSelectedFilter('Denied')}
+          className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Denied' ? 'bg-red-50 border-red-500 ring-2 ring-red-100' : 'bg-white border-gray-200 hover:border-red-300'}`}
+        >
+          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Denied</span>
           <span className="text-3xl font-extrabold text-red-600">{denied}</span>
         </div>
       </div>
@@ -259,7 +254,7 @@ export default function SingleWindowPortal() {
                 required
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="trader@apex.ng, agency@customs.gov.ng, or admin@nsw.gov.ng"
+                placeholder="trader@apex.ng, agency@customs.gov.ng..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
               />
             </div>
@@ -290,7 +285,7 @@ export default function SingleWindowPortal() {
   // ---------------- AUTHENTICATED PORTAL VIEW ----------------
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
-      <header className="bg-emerald-900 text-white shadow-md">
+      <header className="bg-emerald-900 text-white shadow-md relative z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center space-x-3">
             <img src="/logo.png" alt="National Single Window Logo" className="h-10 w-auto object-contain" />
@@ -301,15 +296,45 @@ export default function SingleWindowPortal() {
           </div>
 
           <div className="flex items-center space-x-5 text-xs">
-            {/* Notification Bell */}
-            <button className="relative text-emerald-200 hover:text-white transition">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm border border-red-600">
-                1
-              </span>
-            </button>
+            {/* Functional Notification Bell */}
+            <div className="relative">
+              <button 
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setUnreadCount(0);
+                }}
+                className="relative text-emerald-200 hover:text-white transition focus:outline-none"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm border border-red-600">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-3 w-72 bg-white rounded-xl shadow-2xl border border-gray-100 text-gray-800 overflow-hidden">
+                  <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex justify-between items-center">
+                    <h4 className="font-bold text-xs uppercase text-gray-700">Recent Activity</h4>
+                    <button onClick={() => setShowNotifications(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                    {auditLogs.slice(0, 8).map(log => (
+                      <div key={log.id} className="p-3 hover:bg-gray-50 transition">
+                        <p className="text-[11px] font-medium text-gray-900 leading-tight">
+                          <span className="font-bold text-emerald-700">[{log.role}]</span> {log.action}
+                        </p>
+                        <span className="text-[9px] text-gray-400 mt-1 block">{log.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="text-right border-l border-emerald-700 pl-5">
               <span className="block font-bold text-white">{session.name}</span>
@@ -326,14 +351,14 @@ export default function SingleWindowPortal() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8 relative z-10">
         {/* TRADER CONSOLE */}
         {session.role === 'trader' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Trader Dashboard - {session.name}</h3>
-                <p className="text-xs text-gray-500">Filter your applications by state or submit a new application.</p>
+                <p className="text-xs text-gray-500">Filter your applications by clicking the metric cards.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                 <input 
@@ -353,7 +378,6 @@ export default function SingleWindowPortal() {
             </div>
 
             <DashboardMetrics />
-            <FilterDashboard />
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
@@ -394,7 +418,7 @@ export default function SingleWindowPortal() {
                     )) : (
                       <tr>
                         <td colSpan="5" className="py-8 text-center text-gray-400 text-sm">
-                          No applications found for the selected state.
+                          No applications found for the '{selectedFilter}' state.
                         </td>
                       </tr>
                     )}
@@ -411,7 +435,7 @@ export default function SingleWindowPortal() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Regulatory & Review Console</h3>
-                <p className="text-xs text-gray-500">Filter applications by state to manage your approval queue.</p>
+                <p className="text-xs text-gray-500">Filter your approval queue by clicking the metric cards.</p>
               </div>
               <input 
                 type="text" 
@@ -423,7 +447,6 @@ export default function SingleWindowPortal() {
             </div>
 
             <DashboardMetrics />
-            <FilterDashboard />
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
@@ -485,7 +508,7 @@ export default function SingleWindowPortal() {
                     )) : (
                       <tr>
                         <td colSpan="6" className="py-8 text-center text-gray-400 text-sm">
-                          No applications found for the selected state.
+                          No applications found for the '{selectedFilter}' state.
                         </td>
                       </tr>
                     )}
@@ -516,7 +539,6 @@ export default function SingleWindowPortal() {
             </div>
 
             <DashboardMetrics />
-            <FilterDashboard />
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
               <div className="p-4 bg-gray-50 border-b border-gray-200">
@@ -889,7 +911,6 @@ export default function SingleWindowPortal() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
