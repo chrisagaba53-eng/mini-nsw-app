@@ -85,7 +85,7 @@ export default function SingleWindowPortal() {
     setPasswordInput('');
   };
 
-  // File Upload Handler (< 5MB limit)
+  // File Upload Handler
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -112,7 +112,7 @@ export default function SingleWindowPortal() {
       company: newAppCompany || session?.name || 'Trader Enterprise',
       product: newAppProduct,
       quantity: newAppQuantity,
-      hsCode: '8502.11.00', // Auto-classified by system gateway
+      hsCode: '8502.11.00',
       status: 'Pending Review',
       submittedAt: new Date().toISOString().split('T')[0],
       attachedDocument: newAppFile
@@ -189,6 +189,8 @@ export default function SingleWindowPortal() {
     app.company.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // --- UI COMPONENTS ---
+
   const FilterDashboard = () => (
     <div className="flex space-x-2 bg-gray-100 p-1.5 rounded-lg w-fit text-xs font-bold mb-4">
       {['All', 'Pending', 'Approved', 'Denied'].map(f => (
@@ -202,6 +204,34 @@ export default function SingleWindowPortal() {
       ))}
     </div>
   );
+
+  const DashboardMetrics = () => {
+    const total = applications.length;
+    const approved = applications.filter(a => isApproved(a.status)).length;
+    const denied = applications.filter(a => isDenied(a.status)).length;
+    const pending = applications.filter(a => isPending(a.status)).length;
+
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
+          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">No of Applications</span>
+          <span className="text-3xl font-extrabold text-blue-700">{total}</span>
+        </div>
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
+          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">No of Pending</span>
+          <span className="text-3xl font-extrabold text-amber-600">{pending}</span>
+        </div>
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
+          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">No of Approved</span>
+          <span className="text-3xl font-extrabold text-green-700">{approved}</span>
+        </div>
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center">
+          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">No of Denied</span>
+          <span className="text-3xl font-extrabold text-red-600">{denied}</span>
+        </div>
+      </div>
+    );
+  };
 
   // ---------------- UNSECURED LOGIN VIEW ----------------
   if (!session) {
@@ -270,11 +300,22 @@ export default function SingleWindowPortal() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 text-xs">
-            <div className="text-right">
+          <div className="flex items-center space-x-5 text-xs">
+            {/* Notification Bell */}
+            <button className="relative text-emerald-200 hover:text-white transition">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm border border-red-600">
+                1
+              </span>
+            </button>
+
+            <div className="text-right border-l border-emerald-700 pl-5">
               <span className="block font-bold text-white">{session.name}</span>
               <span className="block text-[10px] uppercase font-semibold text-emerald-300">{session.role} Role</span>
             </div>
+            
             <button 
               onClick={handleLogout}
               className="bg-emerald-800 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold border border-emerald-600 transition"
@@ -289,7 +330,7 @@ export default function SingleWindowPortal() {
         {/* TRADER CONSOLE */}
         {session.role === 'trader' && (
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Trader Dashboard - {session.name}</h3>
                 <p className="text-xs text-gray-500">Filter your applications by state or submit a new application.</p>
@@ -311,6 +352,7 @@ export default function SingleWindowPortal() {
               </div>
             </div>
 
+            <DashboardMetrics />
             <FilterDashboard />
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -366,7 +408,7 @@ export default function SingleWindowPortal() {
         {/* AGENCY CONSOLE */}
         {session.role === 'agency' && (
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Regulatory & Review Console</h3>
                 <p className="text-xs text-gray-500">Filter applications by state to manage your approval queue.</p>
@@ -380,6 +422,7 @@ export default function SingleWindowPortal() {
               />
             </div>
 
+            <DashboardMetrics />
             <FilterDashboard />
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -472,6 +515,7 @@ export default function SingleWindowPortal() {
               </div>
             </div>
 
+            <DashboardMetrics />
             <FilterDashboard />
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
