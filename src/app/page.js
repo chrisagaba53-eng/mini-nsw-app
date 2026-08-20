@@ -524,7 +524,7 @@ export default function SingleWindowPortal() {
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">System Governance & Gateway Console</h3>
+                <h3 className="text-lg font-bold text-gray-900">System Governance & Gateway Portal</h3>
                 <p className="text-xs text-gray-500 mt-1">Platform-wide trade metrics, user account access control, and broadcast notices.</p>
               </div>
               <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
