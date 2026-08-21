@@ -65,6 +65,7 @@ export default function SingleWindowPortal() {
   const [gatewayStatus, setGatewayStatus] = useState('Operational');
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [trackedApp, setTrackedApp] = useState(null);
+  const [showPermit, setShowPermit] = useState(false); // Added for official E-Permit View
   const [showNewAppModal, setShowNewAppModal] = useState(false);
   const [newAppType, setNewAppType] = useState('Import Permit');
   const [newAppCompany, setNewAppCompany] = useState('');
@@ -206,10 +207,10 @@ export default function SingleWindowPortal() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div 
           onClick={() => setSelectedFilter('All')}
-          className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'All' ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-100' : 'bg-white border-gray-200 hover:border-blue-300'}`}
+          className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'All' ? 'bg-gray-100 border-gray-800 ring-2 ring-gray-200' : 'bg-white border-gray-200 hover:border-gray-400'}`}
         >
           <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Total Applications</span>
-          <span className="text-3xl font-extrabold text-blue-700">{total}</span>
+          <span className="text-3xl font-extrabold text-black">{total}</span>
         </div>
         <div 
           onClick={() => setSelectedFilter('Pending')}
@@ -303,12 +304,9 @@ export default function SingleWindowPortal() {
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
       <header className="bg-emerald-900 text-white shadow-md relative z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+          {/* Logo updated: Text removed as requested */}
           <div className="flex items-center space-x-3">
             <img src="/logo.png" alt="Portal Logo" className="h-10 w-auto object-contain" />
-            <div>
-              <h1 className="text-base font-extrabold tracking-tight">National Single Window</h1>
-              <p className="text-[11px] text-emerald-200">Federal Trade Governance Gateway</p>
-            </div>
           </div>
 
           <div className="flex items-center space-x-5 text-xs">
@@ -726,54 +724,106 @@ export default function SingleWindowPortal() {
         </div>
       )}
 
-      {/* Trace Status Modal */}
-      {trackedApp && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wider">Process Trace: {trackedApp.id}</h3>
-              <button onClick={() => setTrackedApp(null)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+      {/* Transaction Flow Status Modal (Rebuilt per supervisor request) */}
+      {trackedApp && !showPermit && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-2xl overflow-hidden">
+            <div className="bg-[#1e4638] text-white p-6 relative">
+              <button onClick={() => setTrackedApp(null)} className="absolute top-4 right-4 text-white hover:text-gray-300 font-bold">✕</button>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 mb-1">Transaction Flow Status</p>
+              <h2 className="text-2xl font-black tracking-tight">{trackedApp.id}</h2>
+              <p className="text-sm text-emerald-100">{trackedApp.product} ({trackedApp.quantity || 'Standard Metric Units'})</p>
             </div>
-            <div className="space-y-4 mb-6 text-sm">
-              <div className="flex justify-between py-1 border-b border-gray-50">
-                <span className="text-gray-500">Product:</span>
-                <span className="font-medium text-gray-900">{trackedApp.product}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-gray-50">
-                <span className="text-gray-500">Company:</span>
-                <span className="font-medium text-gray-900">{trackedApp.company}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-gray-50">
-                <span className="text-gray-500">Submitted Date:</span>
-                <span className="font-medium text-gray-900">{trackedApp.submittedAt}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-gray-50">
-                <span className="text-gray-500">Current Status:</span>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isApproved(trackedApp.status) ? 'bg-green-100 text-green-800' : isDenied(trackedApp.status) ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
-                  {trackedApp.status}
-                </span>
-              </div>
-            </div>
+            
+            <div className="p-6 bg-gray-50">
+              <div className="relative pl-6 border-l-2 border-emerald-600 space-y-6">
+                
+                {/* Step 1: Submission */}
+                <div className="relative">
+                  <div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm">✓</div>
+                  <h4 className="font-bold text-gray-900 text-sm">Application Submitted</h4>
+                  <p className="text-xs text-gray-500">Documentation uploaded by {trackedApp.company}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{trackedApp.submittedAt}</p>
+                </div>
+                
+                {/* Step 2: Gateway */}
+                <div className="relative">
+                  <div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm">✓</div>
+                  <h4 className="font-bold text-gray-900 text-sm">Gateway</h4>
+                  <p className="text-xs text-gray-500">HS Code (8502.11.00) tariff validation passed</p>
+                </div>
+                
+                {/* Step 3: Regulatory Review */}
+                <div className="relative">
+                  <div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm ${isPending(trackedApp.status) ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'}`}>
+                    {isPending(trackedApp.status) ? '⏳' : '✓'}
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-sm">Customs and Regulatory Review</h4>
+                  <p className="text-xs text-gray-500">{isPending(trackedApp.status) ? 'Document verification in progress' : 'Document verification completed'}</p>
+                </div>
+                
+                {/* Step 4: Final Decision */}
+                <div className="relative">
+                  <div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm ${isApproved(trackedApp.status) ? 'bg-emerald-600 text-white' : isDenied(trackedApp.status) ? 'bg-red-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
+                    {isApproved(trackedApp.status) ? '✓' : isDenied(trackedApp.status) ? '✕' : '⏳'}
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-sm">Final Decision</h4>
+                  <p className="text-xs text-gray-500">{isApproved(trackedApp.status) ? 'Digital Permit released successfully' : isDenied(trackedApp.status) ? 'Application denied' : 'Awaiting final decision'}</p>
+                </div>
 
-            <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
-              <h4 className="text-xs font-bold text-gray-700 uppercase">Workflow Lifecycle</h4>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center space-x-2 text-emerald-700 font-medium">
-                  <span>✓</span> <span>Application Received & Document Verified</span>
+              </div>
+
+              {isApproved(trackedApp.status) && (
+                <div className="mt-8 bg-emerald-50/50 border border-emerald-100 rounded-lg p-4 flex justify-between items-center shadow-sm">
+                  <div>
+                    <h5 className="text-xs font-bold text-gray-900">Official E-Permit Generated</h5>
+                    <p className="text-[10px] text-gray-500 uppercase">{trackedApp.id}-PERMIT</p>
+                  </div>
+                  <button
+                    onClick={() => setShowPermit(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded shadow transition"
+                  >
+                    View Official E-Permit
+                  </button>
                 </div>
-                <div className={`flex items-center space-x-2 ${isPending(trackedApp.status) ? 'text-amber-600 font-bold' : 'text-gray-500'}`}>
-                  <span>{isPending(trackedApp.status) ? '⏳' : '✓'}</span> <span>Inter-Agency Regulatory Review</span>
+              )}
+
+              <div className="mt-6 text-center">
+                <button onClick={() => setTrackedApp(null)} className="text-xs text-gray-500 hover:text-gray-700 font-bold transition">
+                  Close Window
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Official E-Permit Document Modal */}
+      {showPermit && trackedApp && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-8 shadow-2xl relative min-h-[500px]">
+            <button onClick={() => setShowPermit(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black font-bold text-lg">✕</button>
+            <div className="border-4 border-double border-emerald-800 p-8 h-full flex flex-col items-center text-center relative">
+              <img src="/logo.png" alt="Logo" className="h-16 mb-4 opacity-10 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 object-contain pointer-events-none" />
+              <h1 className="text-2xl font-black text-emerald-900 uppercase tracking-widest border-b-2 border-emerald-800 pb-2 mb-8 relative z-10">Official Trade Permit</h1>
+              <div className="w-full text-left space-y-4 relative z-10 text-sm">
+                <p><strong className="text-gray-700 w-40 inline-block">Permit No:</strong> {trackedApp.id}-PERMIT</p>
+                <p><strong className="text-gray-700 w-40 inline-block">Issued To:</strong> {trackedApp.company}</p>
+                <p><strong className="text-gray-700 w-40 inline-block">Product/Commodity:</strong> {trackedApp.product}</p>
+                <p><strong className="text-gray-700 w-40 inline-block">Quantity Authorized:</strong> {trackedApp.quantity || 'Standard Unit'}</p>
+                <p><strong className="text-gray-700 w-40 inline-block">Issue Date:</strong> {new Date().toISOString().split('T')[0]}</p>
+                <p><strong className="text-gray-700 w-40 inline-block">Status:</strong> <span className="text-green-700 font-bold uppercase">Valid & Authorized</span></p>
+              </div>
+              <div className="mt-auto w-full pt-12 flex justify-between items-end relative z-10">
+                <div className="text-center">
+                  <div className="border-b border-black w-40 mb-2"></div>
+                  <p className="text-[10px] font-bold uppercase text-gray-600">Authorized Signature</p>
                 </div>
-                <div className={`flex items-center space-x-2 ${isApproved(trackedApp.status) ? 'text-green-700 font-bold' : isDenied(trackedApp.status) ? 'text-red-700 font-bold' : 'text-gray-400'}`}>
-                  <span>{isApproved(trackedApp.status) ? '✔' : isDenied(trackedApp.status) ? '✖' : '○'}</span> 
-                  <span>{isApproved(trackedApp.status) ? 'Permit Issued & Signed' : isDenied(trackedApp.status) ? 'Application Denied' : 'Final Approval Pending'}</span>
+                <div className="w-24 h-24 border-4 border-red-700 text-red-700 flex items-center justify-center rounded-full font-black text-[10px] uppercase transform -rotate-12 opacity-80 leading-tight">
+                  Official<br/>Seal
                 </div>
               </div>
             </div>
-
-            <button onClick={() => setTrackedApp(null)} className="w-full mt-6 bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 rounded-lg text-xs transition">
-              Close Trace
-            </button>
           </div>
         </div>
       )}
