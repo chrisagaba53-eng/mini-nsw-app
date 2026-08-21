@@ -65,7 +65,7 @@ export default function SingleWindowPortal() {
   const [gatewayStatus, setGatewayStatus] = useState('Operational');
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [trackedApp, setTrackedApp] = useState(null);
-  const [showPermit, setShowPermit] = useState(false); // Added for official E-Permit View
+  const [showPermit, setShowPermit] = useState(false); 
   const [showNewAppModal, setShowNewAppModal] = useState(false);
   const [newAppType, setNewAppType] = useState('Import Permit');
   const [newAppCompany, setNewAppCompany] = useState('');
@@ -156,9 +156,9 @@ export default function SingleWindowPortal() {
     addLog('Agency', `Updated ${appId} to ${newStatus}`);
   };
 
-  const handleForceDeleteApp = (appId) => {
-    setApplications(applications.filter(app => app.id !== appId));
-    addLog('Admin', `Force deleted application ${appId}`);
+  const handleFlagApp = (appId) => {
+    addLog('Admin', `Flagged application ${appId} for mandatory compliance audit`);
+    alert(`Application ${appId} has been flagged for regulatory review. Activity logged.`);
   };
 
   const toggleGateway = () => {
@@ -304,9 +304,14 @@ export default function SingleWindowPortal() {
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
       <header className="bg-emerald-900 text-white shadow-md relative z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
-          {/* Logo updated: Text removed as requested */}
+          
+          {/* Header compliance text restored */}
           <div className="flex items-center space-x-3">
             <img src="/logo.png" alt="Portal Logo" className="h-10 w-auto object-contain" />
+            <div className="hidden sm:block">
+              <h1 className="text-sm font-black uppercase tracking-wider leading-tight">National Single Window</h1>
+              <p className="text-[10px] text-emerald-300 font-medium tracking-wide">Federal Trade Governance Gateway</p>
+            </div>
           </div>
 
           <div className="flex items-center space-x-5 text-xs">
@@ -549,6 +554,43 @@ export default function SingleWindowPortal() {
 
             <DashboardMetrics />
 
+            {/* Broadcast Center moved higher up */}
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6 border-l-4 border-l-emerald-700">
+              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">System Broadcast Center</h4>
+              <form onSubmit={handleSendBroadcast} className="flex gap-3">
+                <input 
+                  type="text" 
+                  value={broadcastMessage}
+                  onChange={(e) => setBroadcastMessage(e.target.value)}
+                  placeholder="Type an operational notice for all active portal users..."
+                  className="flex-grow px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                />
+                <button type="submit" className="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm whitespace-nowrap">
+                  Broadcast Notice
+                </button>
+              </form>
+            </div>
+
+            {/* New Admin Feature: Gateway Metrics & Revenue Audit */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                 <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Inter-Agency API Gateway Latency</h4>
+                 <div className="space-y-3">
+                   <div className="flex justify-between items-center"><span className="text-xs text-gray-600">Customs API</span><span className="text-xs font-mono text-green-600">24ms (Online)</span></div>
+                   <div className="flex justify-between items-center"><span className="text-xs text-gray-600">Central Bank Portal</span><span className="text-xs font-mono text-green-600">45ms (Online)</span></div>
+                   <div className="flex justify-between items-center"><span className="text-xs text-gray-600">Standards Organization</span><span className="text-xs font-mono text-amber-600">120ms (Degraded)</span></div>
+                 </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                 <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Tariff Reconciliation (Today)</h4>
+                 <div className="space-y-3">
+                   <div className="flex justify-between items-center"><span className="text-xs text-gray-600">Transactions Processed</span><span className="text-xs font-bold text-gray-900">1,245</span></div>
+                   <div className="flex justify-between items-center"><span className="text-xs text-gray-600">Processing Fees Collected</span><span className="text-xs font-bold text-gray-900">₦4,250,000.00</span></div>
+                   <div className="flex justify-between items-center"><span className="text-xs text-gray-600">Failed Settlements</span><span className="text-xs font-bold text-emerald-600">0</span></div>
+                 </div>
+              </div>
+            </div>
+
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
               <div className="p-4 bg-gray-50 border-b border-gray-200">
                  <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Global Application View</h4>
@@ -561,7 +603,7 @@ export default function SingleWindowPortal() {
                       <th className="py-3 px-4">Company</th>
                       <th className="py-3 px-4">Type</th>
                       <th className="py-3 px-4">State</th>
-                      <th className="py-3 px-4">Actions</th>
+                      <th className="py-3 px-4">Audit & Control Actions</th>
                     </tr>
                   </thead>
                   <tbody className="text-sm divide-y divide-gray-100 bg-white">
@@ -575,12 +617,19 @@ export default function SingleWindowPortal() {
                             {app.status}
                           </span>
                         </td>
-                        <td className="py-2 px-4">
-                          <button 
-                            onClick={() => handleForceDeleteApp(app.id)}
-                            className="text-red-600 hover:text-red-800 text-[10px] font-bold uppercase border border-red-200 bg-red-50 hover:bg-red-100 px-2 py-1 rounded transition"
+                        {/* Destructive Delete removed. Replaced with Audit/Flag actions */}
+                        <td className="py-2 px-4 space-x-2">
+                           <button 
+                            onClick={() => setTrackedApp(app)}
+                            className="text-emerald-700 hover:text-emerald-900 text-[10px] font-bold uppercase border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded transition shadow-sm"
                           >
-                            Delete
+                            View Details
+                          </button>
+                          <button 
+                            onClick={() => handleFlagApp(app.id)}
+                            className="text-amber-700 hover:text-amber-900 text-[10px] font-bold uppercase border border-amber-200 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded transition shadow-sm"
+                          >
+                            Flag for Audit
                           </button>
                         </td>
                       </tr>
@@ -633,21 +682,6 @@ export default function SingleWindowPortal() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">System Broadcast Center</h4>
-              <form onSubmit={handleSendBroadcast} className="flex gap-3">
-                <input 
-                  type="text" 
-                  value={broadcastMessage}
-                  onChange={(e) => setBroadcastMessage(e.target.value)}
-                  placeholder="Type an operational notice for all active portal users..."
-                  className="flex-grow px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
-                <button type="submit" className="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm">
-                  Broadcast Notice
-                </button>
-              </form>
-            </div>
           </div>
         )}
       </main>
@@ -724,7 +758,7 @@ export default function SingleWindowPortal() {
         </div>
       )}
 
-      {/* Transaction Flow Status Modal (Rebuilt per supervisor request) */}
+      {/* Transaction Flow Status Modal */}
       {trackedApp && !showPermit && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-md w-full shadow-2xl overflow-hidden">
