@@ -36,8 +36,10 @@ export default function SingleWindowPortal() {
       type: 'Import Permit',
       product: 'Industrial Solar Panels',
       quantity: '500 Units',
+      hsCode: '8502.11.00',
       company: 'Apex Logistics Ltd',
       status: 'Pending Review',
+      gatewayPassed: true,
       submittedAt: '2026-08-10',
       attachedDocument: null
     },
@@ -46,8 +48,10 @@ export default function SingleWindowPortal() {
       type: 'Export License',
       product: 'Raw Cocoa Beans',
       quantity: '50 Metric Tons',
+      hsCode: '1801.00.00',
       company: 'AgroExport Nigeria',
       status: 'Approved',
+      gatewayPassed: true,
       submittedAt: '2026-08-12',
       attachedDocument: null
     }
@@ -71,6 +75,7 @@ export default function SingleWindowPortal() {
   const [newAppCompany, setNewAppCompany] = useState('');
   const [newAppProduct, setNewAppProduct] = useState('');
   const [newAppQuantity, setNewAppQuantity] = useState('');
+  const [newAppHsCode, setNewAppHsCode] = useState('');
   const [newAppFile, setNewAppFile] = useState(null);
   const [fileError, setFileError] = useState('');
   const [docPreview, setDocPreview] = useState(null);
@@ -128,23 +133,31 @@ export default function SingleWindowPortal() {
   const handleFormSubmitApplication = (e) => {
     e.preventDefault();
     const newId = `NSW-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    
+    // Tariff Validation Rule: Codes starting with '99' or matching '0000' fail automated gateway check
+    const cleanHs = newAppHsCode.trim();
+    const gatewayPassed = !(cleanHs.startsWith('99') || cleanHs === '0000.00.00');
+
     const newApp = {
       id: newId,
       type: newAppType,
       company: newAppCompany || session?.name || 'Trader Enterprise',
       product: newAppProduct,
       quantity: newAppQuantity,
-      status: 'Pending Review',
+      hsCode: cleanHs,
+      status: gatewayPassed ? 'Pending Review' : 'Gateway Failed',
+      gatewayPassed: gatewayPassed,
       submittedAt: new Date().toISOString().split('T')[0],
       attachedDocument: newAppFile
     };
 
     setApplications([newApp, ...applications]);
-    addLog('Trader', `Submitted application ${newId}`);
+    addLog('Trader', `Submitted application ${newId} (HS: ${cleanHs}) -> Gateway: ${gatewayPassed ? 'Passed' : 'Failed'}`);
     setShowNewAppModal(false);
     setNewAppCompany('');
     setNewAppProduct('');
     setNewAppQuantity('');
+    setNewAppHsCode('');
     setNewAppFile(null);
   };
 
@@ -181,7 +194,7 @@ export default function SingleWindowPortal() {
   };
 
   const isApproved = (status) => status === 'Approved';
-  const isDenied = (status) => status === 'Denied' || status === 'Rejected';
+  const isDenied = (status) => status === 'Denied' || status === 'Rejected' || status === 'Gateway Failed';
   const isPending = (status) => !isApproved(status) && !isDenied(status);
 
   const filteredApps = applications.filter(app => {
@@ -194,7 +207,8 @@ export default function SingleWindowPortal() {
   const displayedApps = filteredApps.filter(app => 
     app.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.company.toLowerCase().includes(searchTerm.toLowerCase())
+    app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    app.hsCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const DashboardMetrics = () => {
@@ -230,7 +244,7 @@ export default function SingleWindowPortal() {
           onClick={() => setSelectedFilter('Denied')}
           className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Denied' ? 'bg-red-50 border-red-500 ring-2 ring-red-100' : 'bg-white border-gray-200 hover:border-red-300'}`}
         >
-          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Denied</span>
+          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Denied / Blocked</span>
           <span className="text-3xl font-extrabold text-red-600">{denied}</span>
         </div>
       </div>
@@ -305,7 +319,6 @@ export default function SingleWindowPortal() {
       <header className="bg-emerald-900 text-white shadow-md relative z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
           
-          {/* Header compliance text restored */}
           <div className="flex items-center space-x-3">
             <img src="/logo.png" alt="Portal Logo" className="h-10 w-auto object-contain" />
             <div className="hidden sm:block">
@@ -379,7 +392,7 @@ export default function SingleWindowPortal() {
               <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                 <input 
                   type="text" 
-                  placeholder="Search ID, Product..." 
+                  placeholder="Search ID, Product, HS Code..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none flex-grow sm:flex-grow-0"
@@ -397,12 +410,13 @@ export default function SingleWindowPortal() {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[650px]">
+                <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
                       <th className="py-3 px-4">Application ID</th>
                       <th className="py-3 px-4">Type</th>
                       <th className="py-3 px-4">Product</th>
+                      <th className="py-3 px-4">HS Code</th>
                       <th className="py-3 px-4">Current State</th>
                       <th className="py-3 px-4">Process Flow</th>
                     </tr>
@@ -413,6 +427,7 @@ export default function SingleWindowPortal() {
                         <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td>
                         <td className="py-3 px-4">{app.type}</td>
                         <td className="py-3 px-4">{app.product}</td>
+                        <td className="py-3 px-4 font-mono text-xs">{app.hsCode}</td>
                         <td className="py-3 px-4">
                           <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider
                             ${isApproved(app.status) ? 'bg-green-100 text-green-800' : ''}
@@ -433,7 +448,7 @@ export default function SingleWindowPortal() {
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan="5" className="py-8 text-center text-gray-400 text-sm">
+                        <td colSpan="6" className="py-8 text-center text-gray-400 text-sm">
                           No applications found for the '{selectedFilter}' state.
                         </td>
                       </tr>
@@ -454,7 +469,7 @@ export default function SingleWindowPortal() {
               </div>
               <input 
                 type="text" 
-                placeholder="Search Company, ID..." 
+                placeholder="Search Company, ID, HS Code..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none w-full sm:w-auto"
@@ -465,12 +480,12 @@ export default function SingleWindowPortal() {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[700px]">
+                <table className="w-full text-left border-collapse min-w-[750px]">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
                       <th className="py-3 px-4">Application ID</th>
                       <th className="py-3 px-4">Company</th>
-                      <th className="py-3 px-4">Product</th>
+                      <th className="py-3 px-4">Product & HS Code</th>
                       <th className="py-3 px-4">Uploaded File</th>
                       <th className="py-3 px-4">Current State</th>
                       <th className="py-3 px-4">Actions & Flow</th>
@@ -481,7 +496,10 @@ export default function SingleWindowPortal() {
                       <tr key={app.id} className="hover:bg-gray-50">
                         <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td>
                         <td className="py-3 px-4">{app.company}</td>
-                        <td className="py-3 px-4">{app.product}</td>
+                        <td className="py-3 px-4">
+                          <span className="block font-medium">{app.product}</span>
+                          <span className="block font-mono text-[11px] text-gray-500">{app.hsCode}</span>
+                        </td>
                         <td className="py-3 px-4">
                           {app.attachedDocument ? (
                             <button 
@@ -554,7 +572,6 @@ export default function SingleWindowPortal() {
 
             <DashboardMetrics />
 
-            {/* Broadcast Center moved higher up */}
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6 border-l-4 border-l-emerald-700">
               <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">System Broadcast Center</h4>
               <form onSubmit={handleSendBroadcast} className="flex gap-3">
@@ -571,7 +588,6 @@ export default function SingleWindowPortal() {
               </form>
             </div>
 
-            {/* New Admin Feature: Gateway Metrics & Revenue Audit */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Inter-Agency API Gateway Latency</h4>
@@ -602,6 +618,7 @@ export default function SingleWindowPortal() {
                       <th className="py-3 px-4">ID</th>
                       <th className="py-3 px-4">Company</th>
                       <th className="py-3 px-4">Type</th>
+                      <th className="py-3 px-4">HS Code</th>
                       <th className="py-3 px-4">State</th>
                       <th className="py-3 px-4">Audit & Control Actions</th>
                     </tr>
@@ -612,12 +629,12 @@ export default function SingleWindowPortal() {
                         <td className="py-2 px-4 font-medium text-emerald-700">{app.id}</td>
                         <td className="py-2 px-4">{app.company}</td>
                         <td className="py-2 px-4">{app.type}</td>
+                        <td className="py-2 px-4 font-mono text-xs">{app.hsCode}</td>
                         <td className="py-2 px-4">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isApproved(app.status) ? 'bg-green-100 text-green-800' : isDenied(app.status) ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
                             {app.status}
                           </span>
                         </td>
-                        {/* Destructive Delete removed. Replaced with Audit/Flag actions */}
                         <td className="py-2 px-4 space-x-2">
                            <button 
                             onClick={() => setTrackedApp(app)}
@@ -686,7 +703,7 @@ export default function SingleWindowPortal() {
         )}
       </main>
 
-      {/* New Application Modal */}
+      {/* New Application Modal with HS Code Input */}
       {showNewAppModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
@@ -729,16 +746,30 @@ export default function SingleWindowPortal() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity / Volume</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g. 500 Units"
-                  value={newAppQuantity}
-                  onChange={(e) => setNewAppQuantity(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity / Volume</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="e.g. 500 Units"
+                    value={newAppQuantity}
+                    onChange={(e) => setNewAppQuantity(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">HS Code (Tariff)</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="e.g. 8502.11.00"
+                    value={newAppHsCode}
+                    onChange={(e) => setNewAppHsCode(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                  />
+                  <span className="text-[10px] text-gray-400 mt-0.5 block">Test fail: use code starting with 99</span>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Attach Supporting Document (Max 5MB)</label>
@@ -766,7 +797,7 @@ export default function SingleWindowPortal() {
               <button onClick={() => setTrackedApp(null)} className="absolute top-4 right-4 text-white hover:text-gray-300 font-bold">✕</button>
               <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 mb-1">Transaction Flow Status</p>
               <h2 className="text-2xl font-black tracking-tight">{trackedApp.id}</h2>
-              <p className="text-sm text-emerald-100">{trackedApp.product} ({trackedApp.quantity || 'Standard Metric Units'})</p>
+              <p className="text-sm text-emerald-100">{trackedApp.product} (HS: {trackedApp.hsCode})</p>
             </div>
             
             <div className="p-6 bg-gray-50">
@@ -776,24 +807,36 @@ export default function SingleWindowPortal() {
                 <div className="relative">
                   <div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm">✓</div>
                   <h4 className="font-bold text-gray-900 text-sm">Application Submitted</h4>
-                  <p className="text-xs text-gray-500">Documentation uploaded by {trackedApp.company}</p>
+                  <p className="text-xs text-gray-500">Documentation & HS Code uploaded by {trackedApp.company}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{trackedApp.submittedAt}</p>
                 </div>
                 
-                {/* Step 2: Gateway */}
+                {/* Step 2: Gateway Validation */}
                 <div className="relative">
-                  <div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm">✓</div>
-                  <h4 className="font-bold text-gray-900 text-sm">Gateway</h4>
-                  <p className="text-xs text-gray-500">HS Code (8502.11.00) tariff validation passed</p>
+                  <div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm ${trackedApp.gatewayPassed ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
+                    {trackedApp.gatewayPassed ? '✓' : '✕'}
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-sm">Automated Tariff Gateway</h4>
+                  <p className="text-xs text-gray-500">
+                    {trackedApp.gatewayPassed 
+                      ? `HS Code (${trackedApp.hsCode}) tariff validation passed successfully` 
+                      : `Gateway Error: HS Code (${trackedApp.hsCode}) is restricted or prohibited`}
+                  </p>
                 </div>
                 
                 {/* Step 3: Regulatory Review */}
                 <div className="relative">
-                  <div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm ${isPending(trackedApp.status) ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'}`}>
-                    {isPending(trackedApp.status) ? '⏳' : '✓'}
+                  <div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm ${!trackedApp.gatewayPassed ? 'bg-gray-300 text-gray-500' : isPending(trackedApp.status) ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'}`}>
+                    {!trackedApp.gatewayPassed ? '🚫' : isPending(trackedApp.status) ? '⏳' : '✓'}
                   </div>
                   <h4 className="font-bold text-gray-900 text-sm">Customs and Regulatory Review</h4>
-                  <p className="text-xs text-gray-500">{isPending(trackedApp.status) ? 'Document verification in progress' : 'Document verification completed'}</p>
+                  <p className="text-xs text-gray-500">
+                    {!trackedApp.gatewayPassed 
+                      ? 'Halted due to tariff validation failure' 
+                      : isPending(trackedApp.status) 
+                      ? 'Document verification in progress' 
+                      : 'Document verification completed'}
+                  </p>
                 </div>
                 
                 {/* Step 4: Final Decision */}
@@ -802,7 +845,13 @@ export default function SingleWindowPortal() {
                     {isApproved(trackedApp.status) ? '✓' : isDenied(trackedApp.status) ? '✕' : '⏳'}
                   </div>
                   <h4 className="font-bold text-gray-900 text-sm">Final Decision</h4>
-                  <p className="text-xs text-gray-500">{isApproved(trackedApp.status) ? 'Digital Permit released successfully' : isDenied(trackedApp.status) ? 'Application denied' : 'Awaiting final decision'}</p>
+                  <p className="text-xs text-gray-500">
+                    {isApproved(trackedApp.status) 
+                      ? 'Digital Permit released successfully' 
+                      : isDenied(trackedApp.status) 
+                      ? 'Application blocked/denied by system' 
+                      : 'Awaiting final decision'}
+                  </p>
                 </div>
 
               </div>
@@ -844,6 +893,7 @@ export default function SingleWindowPortal() {
                 <p><strong className="text-gray-700 w-40 inline-block">Permit No:</strong> {trackedApp.id}-PERMIT</p>
                 <p><strong className="text-gray-700 w-40 inline-block">Issued To:</strong> {trackedApp.company}</p>
                 <p><strong className="text-gray-700 w-40 inline-block">Product/Commodity:</strong> {trackedApp.product}</p>
+                <p><strong className="text-gray-700 w-40 inline-block">HS Code:</strong> {trackedApp.hsCode}</p>
                 <p><strong className="text-gray-700 w-40 inline-block">Quantity Authorized:</strong> {trackedApp.quantity || 'Standard Unit'}</p>
                 <p><strong className="text-gray-700 w-40 inline-block">Issue Date:</strong> {new Date().toISOString().split('T')[0]}</p>
                 <p><strong className="text-gray-700 w-40 inline-block">Status:</strong> <span className="text-green-700 font-bold uppercase">Valid & Authorized</span></p>
