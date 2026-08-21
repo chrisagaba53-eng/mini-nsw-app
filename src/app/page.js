@@ -3,20 +3,17 @@
 import React, { useState, useEffect } from 'react';
 
 export default function SingleWindowPortal() {
-  // System authentication state
   const [session, setSession] = useState(null);
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // Admin & Governance state
   const [systemUsers, setSystemUsers] = useState([
     { id: 1, name: 'Apex Logistics', email: 'trader@apex.ng', role: 'trader', status: 'Active' },
     { id: 2, name: 'Customs Officer', email: 'officer@customs.gov.ng', role: 'agency', status: 'Active' },
     { id: 3, name: 'System Admin', email: 'admin@nsw.gov.ng', role: 'admin', status: 'Active' }
   ]);
 
-  // Sync users with localStorage so suspension persists across logouts and refreshes
   useEffect(() => {
     const savedUsers = localStorage.getItem('nsw_system_users');
     if (savedUsers) {
@@ -33,7 +30,6 @@ export default function SingleWindowPortal() {
     localStorage.setItem('nsw_system_users', JSON.stringify(newUsers));
   };
 
-  // Applications master state
   const [applications, setApplications] = useState([
     {
       id: 'NSW-2026-1042',
@@ -59,8 +55,6 @@ export default function SingleWindowPortal() {
 
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Notification & Audit State
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(1);
   const [auditLogs, setAuditLogs] = useState([
@@ -70,8 +64,6 @@ export default function SingleWindowPortal() {
 
   const [gatewayStatus, setGatewayStatus] = useState('Operational');
   const [broadcastMessage, setBroadcastMessage] = useState('');
-
-  // Modal & Interactive states
   const [trackedApp, setTrackedApp] = useState(null);
   const [showNewAppModal, setShowNewAppModal] = useState(false);
   const [newAppType, setNewAppType] = useState('Import Permit');
@@ -80,16 +72,12 @@ export default function SingleWindowPortal() {
   const [newAppQuantity, setNewAppQuantity] = useState('');
   const [newAppFile, setNewAppFile] = useState(null);
   const [fileError, setFileError] = useState('');
-
   const [docPreview, setDocPreview] = useState(null);
-  const [viewingPermit, setViewingPermit] = useState(null);
 
-  // Authentication Handler with Active Enforcement
   const handleSecureLogin = (e) => {
     e.preventDefault();
     const cleanEmail = emailInput.trim().toLowerCase();
 
-    // Enforce account status check
     const targetUser = systemUsers.find(u => u.email.toLowerCase() === cleanEmail);
     if (targetUser && targetUser.status === 'Suspended') {
       setLoginError('Account Suspended: Access revoked by System Administrator.');
@@ -115,7 +103,6 @@ export default function SingleWindowPortal() {
     setLoginError('');
   };
 
-  // File Upload Handler
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -137,7 +124,6 @@ export default function SingleWindowPortal() {
     setUnreadCount(prev => prev + 1);
   };
 
-  // Application Submission Handler
   const handleFormSubmitApplication = (e) => {
     e.preventDefault();
     const newId = `NSW-2026-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -161,7 +147,6 @@ export default function SingleWindowPortal() {
     setNewAppFile(null);
   };
 
-  // Status Action Handlers
   const handleAgencyAction = (appId, newStatus) => {
     setApplications(applications.map(app => app.id === appId ? { ...app, status: newStatus } : app));
     if (trackedApp && trackedApp.id === appId) {
@@ -170,7 +155,10 @@ export default function SingleWindowPortal() {
     addLog('Agency', `Updated ${appId} to ${newStatus}`);
   };
 
-  
+  const handleForceDeleteApp = (appId) => {
+    setApplications(applications.filter(app => app.id !== appId));
+    addLog('Admin', `Force deleted application ${appId}`);
+  };
 
   const toggleGateway = () => {
     const nextStatus = gatewayStatus === 'Operational' ? 'Maintenance' : 'Operational';
@@ -191,12 +179,10 @@ export default function SingleWindowPortal() {
     setBroadcastMessage('');
   };
 
-  // Helper status checkers
   const isApproved = (status) => status === 'Approved';
   const isDenied = (status) => status === 'Denied' || status === 'Rejected';
   const isPending = (status) => !isApproved(status) && !isDenied(status);
 
-  // Filtering Logic
   const filteredApps = applications.filter(app => {
     if (selectedFilter === 'Approved') return isApproved(app.status);
     if (selectedFilter === 'Pending') return isPending(app.status);
@@ -209,8 +195,6 @@ export default function SingleWindowPortal() {
     app.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.company.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  // --- UI COMPONENTS ---
 
   const DashboardMetrics = () => {
     const total = applications.length;
@@ -252,17 +236,13 @@ export default function SingleWindowPortal() {
     );
   };
 
-  // ---------------- UNSECURED LOGIN VIEW ----------------
   if (!session) {
     return (
       <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border-t-8 border-emerald-700">
-          <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="National Single Window Logo" className="h-16 w-auto object-contain max-w-full" />
+          <div className="flex justify-center mb-6">
+            <img src="/logo.png" alt="Portal Logo" className="h-16 w-auto object-contain max-w-full" />
           </div>
-
-          <h1 className="text-2xl font-extrabold text-emerald-900 text-center tracking-tight">National Single Window</h1>
-          <p className="text-xs text-gray-500 text-center mt-1 mb-6 uppercase tracking-widest font-semibold">Enterprise Trade Portal (Nigeria)</p>
 
           {loginError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded text-center">
@@ -272,26 +252,39 @@ export default function SingleWindowPortal() {
 
           <form onSubmit={handleSecureLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Official Email Address</label>
-              <input 
-                type="email" 
-                required
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="trader@apex.ng, agency@customs.gov.ng..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-              />
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-emerald-700">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </span>
+                <input 
+                  type="email" 
+                  required
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="trader@apex.ng, agency@customs.gov.ng..."
+                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Password</label>
-              <input 
-                type="password" 
-                required
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-              />
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-emerald-700">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </span>
+                <input 
+                  type="password" 
+                  required
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="Password"
+                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                />
+              </div>
             </div>
 
             <button 
@@ -306,13 +299,12 @@ export default function SingleWindowPortal() {
     );
   }
 
-  // ---------------- AUTHENTICATED PORTAL VIEW ----------------
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
       <header className="bg-emerald-900 text-white shadow-md relative z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center space-x-3">
-            <img src="/logo.png" alt="National Single Window Logo" className="h-10 w-auto object-contain" />
+            <img src="/logo.png" alt="Portal Logo" className="h-10 w-auto object-contain" />
             <div>
               <h1 className="text-base font-extrabold tracking-tight">National Single Window</h1>
               <p className="text-[11px] text-emerald-200">Federal Trade Governance Gateway</p>
@@ -320,7 +312,6 @@ export default function SingleWindowPortal() {
           </div>
 
           <div className="flex items-center space-x-5 text-xs">
-            {/* Functional Notification Bell */}
             <div className="relative">
               <button 
                 onClick={() => {
@@ -339,7 +330,6 @@ export default function SingleWindowPortal() {
                 )}
               </button>
 
-              {/* Notification Dropdown */}
               {showNotifications && (
                 <div className="absolute right-0 mt-3 w-72 bg-white rounded-xl shadow-2xl border border-gray-100 text-gray-800 overflow-hidden">
                   <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex justify-between items-center">
@@ -376,7 +366,6 @@ export default function SingleWindowPortal() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 relative z-10">
-        {/* TRADER PORTAL */}
         {session.role === 'trader' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
@@ -453,7 +442,6 @@ export default function SingleWindowPortal() {
           </div>
         )}
 
-        {/* AGENCY PORTAL */}
         {session.role === 'agency' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
@@ -543,7 +531,6 @@ export default function SingleWindowPortal() {
           </div>
         )}
 
-        {/* ADMIN PORTAL */}
         {session.role === 'admin' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -576,7 +563,7 @@ export default function SingleWindowPortal() {
                       <th className="py-3 px-4">Company</th>
                       <th className="py-3 px-4">Type</th>
                       <th className="py-3 px-4">State</th>
-                  
+                      <th className="py-3 px-4">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="text-sm divide-y divide-gray-100 bg-white">
@@ -595,7 +582,7 @@ export default function SingleWindowPortal() {
                             onClick={() => handleForceDeleteApp(app.id)}
                             className="text-red-600 hover:text-red-800 text-[10px] font-bold uppercase border border-red-200 bg-red-50 hover:bg-red-100 px-2 py-1 rounded transition"
                           >
-                            
+                            Delete
                           </button>
                         </td>
                       </tr>
@@ -648,288 +635,170 @@ export default function SingleWindowPortal() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Push Broadcast Notice</h4>
-                <form onSubmit={handleSendBroadcast} className="space-y-3">
-                  <textarea 
-                    rows="3"
-                    required
-                    placeholder="Enter urgent system-wide announcement for traders and agencies..."
-                    value={broadcastMessage}
-                    onChange={(e) => setBroadcastMessage(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                  ></textarea>
-                  <button type="submit" className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-900 transition shadow">
-                    Broadcast Notice
-                  </button>
-                </form>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">System Security Audit Trail</h4>
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 max-h-40 overflow-y-auto text-[11px] font-mono space-y-2">
-                  {auditLogs.map(log => (
-                    <div key={log.id} className="flex justify-between border-b pb-1">
-                      <span className="text-gray-800">[{log.role}] {log.action}</span>
-                      <span className="text-gray-400">{log.time}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">System Broadcast Center</h4>
+              <form onSubmit={handleSendBroadcast} className="flex gap-3">
+                <input 
+                  type="text" 
+                  value={broadcastMessage}
+                  onChange={(e) => setBroadcastMessage(e.target.value)}
+                  placeholder="Type an operational notice for all active portal users..."
+                  className="flex-grow px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                />
+                <button type="submit" className="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm">
+                  Broadcast Notice
+                </button>
+              </form>
             </div>
           </div>
         )}
       </main>
 
-      {/* ---------------- TRACE STATUS OVERLAY MODAL ---------------- */}
-      {trackedApp && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100">
-            <div className="bg-emerald-900 text-white p-5 flex justify-between items-start">
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-300 block mb-1">Transaction Flow Status</span>
-                <h3 className="text-lg font-extrabold">{trackedApp.id}</h3>
-                <p className="text-xs text-emerald-200 mt-0.5">{trackedApp.product} ({trackedApp.quantity})</p>
-              </div>
-              <button onClick={() => setTrackedApp(null)} className="text-white hover:text-emerald-300 font-bold text-xl leading-none">✕</button>
-            </div>
-
-            <div className="p-6 bg-gray-50 max-h-[75vh] overflow-y-auto">
-              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-0">
-                
-                <div className="relative pl-8 pb-8">
-                  <div className="absolute left-3.5 top-6 bottom-0 w-0.5 bg-emerald-500"></div>
-                  <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
-                  <div>
-                    <h5 className="text-sm font-bold text-gray-900">Application Submitted</h5>
-                    <p className="text-xs text-gray-600 mt-0.5">Documentation uploaded by {trackedApp.company}</p>
-                    <span className="text-[10px] text-emerald-700 font-semibold mt-1 block">{trackedApp.submittedAt}</span>
-                  </div>
-                </div>
-
-                <div className="relative pl-8 pb-8">
-                  <div className="absolute left-3.5 top-6 bottom-0 w-0.5 bg-emerald-500"></div>
-                  <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
-                  <div>
-                    <h5 className="text-sm font-bold text-gray-900">Gateway</h5>
-                    <p className="text-xs text-gray-600 mt-0.5">Trade documentation validation passed</p>
-                  </div>
-                </div>
-
-                <div className="relative pl-8 pb-8">
-                  <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${isApproved(trackedApp.status) ? 'bg-emerald-500' : isDenied(trackedApp.status) ? 'bg-red-300' : 'bg-gray-200'}`}></div>
-                  {isPending(trackedApp.status) ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold ring-4 ring-amber-100 animate-pulse">⏳</div>
-                  ) : isApproved(trackedApp.status) ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
-                  ) : (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shadow">!</div>
-                  )}
-                  <div>
-                    <h5 className="text-sm font-bold text-gray-900">Customs and Regulatory Review</h5>
-                    <p className="text-xs text-gray-600 mt-0.5">
-                      {isPending(trackedApp.status) && 'Currently being inspected by Customs'}
-                      {isApproved(trackedApp.status) && 'Document verification completed'}
-                      {isDenied(trackedApp.status) && 'Denied: Missing regulatory clearance'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="relative pl-8">
-                  {isApproved(trackedApp.status) ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow ring-4 ring-emerald-100">✓</div>
-                  ) : isDenied(trackedApp.status) ? (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-red-100 border-2 border-red-500 text-red-600 flex items-center justify-center text-xs font-bold">✕</div>
-                  ) : (
-                    <div className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-gray-100 border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-bold">4</div>
-                  )}
-                  <div>
-                    <h5 className={`text-sm font-bold ${isApproved(trackedApp.status) ? 'text-emerald-900 font-extrabold' : 'text-gray-400'}`}>
-                      Final Decision
-                    </h5>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {isApproved(trackedApp.status) ? 'Digital Permit released successfully' : isDenied(trackedApp.status) ? 'Application rejected' : 'Awaiting final state'}
-                    </p>
-                    
-                    {isApproved(trackedApp.status) && (
-                      <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex justify-between items-center">
-                        <div>
-                          <span className="block text-xs font-bold text-emerald-900">Official E-Permit Generated</span>
-                          <span className="block text-[10px] text-emerald-700 font-mono">{trackedApp.id}-PERMIT</span>
-                        </div>
-                        <button 
-                          onClick={() => setViewingPermit(trackedApp)} 
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center shadow-sm"
-                        >
-                          View Official E-Permit
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            </div>
-            
-            <div className="bg-white px-6 py-4 border-t border-gray-200 flex justify-end items-center space-x-2">
-              {session.role === 'agency' && isPending(trackedApp.status) && (
-                <>
-                  <button onClick={() => handleAgencyAction(trackedApp.id, 'Approved')} className="bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-800 transition">Approve</button>
-                  <button onClick={() => handleAgencyAction(trackedApp.id, 'Denied')} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 transition">Deny</button>
-                </>
-              )}
-              <button onClick={() => setTrackedApp(null)} className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Close Window</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ---------------- NEW APPLICATION FORM MODAL ---------------- */}
+      {/* New Application Modal */}
       {showNewAppModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border-t-8 border-emerald-700">
-            <div className="flex justify-between items-center mb-4 border-b pb-2">
-              <h4 className="font-bold text-gray-900 text-base">Submit New Trade Application</h4>
-              <button onClick={() => setShowNewAppModal(false)} className="text-gray-500 hover:text-gray-700 font-bold text-lg">✕</button>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900">Submit New Trade Application</h3>
+              <button onClick={() => setShowNewAppModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
             </div>
             <form onSubmit={handleFormSubmitApplication} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Application Type</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Permit / License Type</label>
                 <select 
                   value={newAppType} 
                   onChange={(e) => setNewAppType(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-white"
                 >
-                  <option value="Import Permit">Import Permit (Form M)</option>
+                  <option value="Import Permit">Import Permit</option>
                   <option value="Export License">Export License</option>
                   <option value="Transit Goods Clearance">Transit Goods Clearance</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Company / Enterprise Name</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Company Name</label>
                 <input 
                   type="text" 
-                  required 
-                  placeholder="e.g., Global Freight Ltd" 
-                  value={newAppCompany} 
-                  onChange={(e) => setNewAppCompany(e.target.value)} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" 
+                  required
+                  placeholder="e.g. Apex Logistics Ltd"
+                  value={newAppCompany}
+                  onChange={(e) => setNewAppCompany(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Product Description</label>
-                <input type="text" required placeholder="e.g., Heavy Industrial Generator" value={newAppProduct} onChange={(e) => setNewAppProduct(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" />
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Industrial Solar Panels"
+                  value={newAppProduct}
+                  onChange={(e) => setNewAppProduct(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity & Units</label>
-                <input type="text" required placeholder="e.g., 5 Units / 100 Metric Tons" value={newAppQuantity} onChange={(e) => setNewAppQuantity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" />
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity / Volume</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. 500 Units"
+                  value={newAppQuantity}
+                  onChange={(e) => setNewAppQuantity(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                />
               </div>
-
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Upload Supporting Document (Max 5MB)</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Attach Supporting Document (Max 5MB)</label>
                 <input 
                   type="file" 
-                  accept="image/*,.pdf" 
-                  onChange={handleFileChange} 
-                  className="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" 
+                  onChange={handleFileChange}
+                  className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
                 />
-                {fileError && <p className="text-red-600 text-[11px] font-bold mt-1">{fileError}</p>}
+                {fileError && <p className="text-xs text-red-600 mt-1 font-bold">{fileError}</p>}
               </div>
-
-              <div className="flex justify-end space-x-3 pt-2">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setShowNewAppModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-900 transition shadow">Submit Application</button>
+                <button type="submit" className="px-4 py-2 bg-emerald-800 text-white rounded-lg text-xs font-bold hover:bg-emerald-900 transition">Submit Application</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* ---------------- AGENCY ATTACHED DOCUMENT MODAL ---------------- */}
-      {docPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-4 border-t-4 border-emerald-700">
-            <div className="flex justify-between items-center border-b pb-2 mb-3">
-              <h4 className="font-bold text-gray-900 text-sm uppercase">Attached Trader Documentation</h4>
-              <button onClick={() => setDocPreview(null)} className="text-gray-500 hover:text-gray-700 font-bold">✕</button>
+      {/* Trace Status Modal */}
+      {trackedApp && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wider">Process Trace: {trackedApp.id}</h3>
+              <button onClick={() => setTrackedApp(null)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
             </div>
-            <div className="max-h-[60vh] overflow-auto flex items-center justify-center bg-gray-100 rounded p-2">
-              {docPreview.startsWith('data:image') ? (
-                <img src={docPreview} alt="Attached Document" className="max-w-full h-auto rounded" />
-              ) : (
-                <iframe src={docPreview} title="Document Preview" className="w-full h-96 rounded"></iframe>
-              )}
+            <div className="space-y-4 mb-6 text-sm">
+              <div className="flex justify-between py-1 border-b border-gray-50">
+                <span className="text-gray-500">Product:</span>
+                <span className="font-medium text-gray-900">{trackedApp.product}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-gray-50">
+                <span className="text-gray-500">Company:</span>
+                <span className="font-medium text-gray-900">{trackedApp.company}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-gray-50">
+                <span className="text-gray-500">Submitted Date:</span>
+                <span className="font-medium text-gray-900">{trackedApp.submittedAt}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-gray-50">
+                <span className="text-gray-500">Current Status:</span>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isApproved(trackedApp.status) ? 'bg-green-100 text-green-800' : isDenied(trackedApp.status) ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                  {trackedApp.status}
+                </span>
+              </div>
             </div>
-            <div className="mt-3 text-right">
-              <button onClick={() => setDocPreview(null)} className="bg-gray-800 text-white px-4 py-1.5 rounded text-xs font-bold">Close Preview</button>
+
+            <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
+              <h4 className="text-xs font-bold text-gray-700 uppercase">Workflow Lifecycle</h4>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center space-x-2 text-emerald-700 font-medium">
+                  <span>✓</span> <span>Application Received & Document Verified</span>
+                </div>
+                <div className={`flex items-center space-x-2 ${isPending(trackedApp.status) ? 'text-amber-600 font-bold' : 'text-gray-500'}`}>
+                  <span>{isPending(trackedApp.status) ? '⏳' : '✓'}</span> <span>Inter-Agency Regulatory Review</span>
+                </div>
+                <div className={`flex items-center space-x-2 ${isApproved(trackedApp.status) ? 'text-green-700 font-bold' : isDenied(trackedApp.status) ? 'text-red-700 font-bold' : 'text-gray-400'}`}>
+                  <span>{isApproved(trackedApp.status) ? '✔' : isDenied(trackedApp.status) ? '✖' : '○'}</span> 
+                  <span>{isApproved(trackedApp.status) ? 'Permit Issued & Signed' : isDenied(trackedApp.status) ? 'Application Denied' : 'Final Approval Pending'}</span>
+                </div>
+              </div>
             </div>
+
+            <button onClick={() => setTrackedApp(null)} className="w-full mt-6 bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 rounded-lg text-xs transition">
+              Close Trace
+            </button>
           </div>
         </div>
       )}
 
-      {/* ---------------- FORMAL E-PERMIT CERTIFICATE MODAL ---------------- */}
-      {viewingPermit && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white max-w-2xl w-full p-8 rounded-lg shadow-2xl border-8 border-double border-emerald-900 relative">
-            <div className="text-center border-b-2 border-emerald-900 pb-4 mb-6">
-              <p className="text-[10px] font-bold tracking-widest text-emerald-900 uppercase">Federal Republic of Nigeria</p>
-              <h2 className="text-xl font-extrabold text-emerald-950 uppercase tracking-tight mt-1">National Single Window Trade Portal</h2>
-              <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mt-0.5">Official Electronic Import / Export Permit</p>
+      {/* Document Preview Modal */}
+      {docPreview && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900 text-sm">Attached Document Preview</h3>
+              <button onClick={() => setDocPreview(null)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
             </div>
-
-            <div className="grid grid-cols-2 gap-4 text-xs mb-6 bg-emerald-50/50 p-4 rounded border border-emerald-100">
-              <div>
-                <span className="text-gray-500 uppercase font-bold text-[10px] block">Permit Reference</span>
-                <span className="font-mono font-bold text-gray-900 text-sm">{viewingPermit.id}-PERMIT</span>
-              </div>
-              <div>
-                <span className="text-gray-500 uppercase font-bold text-[10px] block">Date of Issuance</span>
-                <span className="font-bold text-gray-900">{viewingPermit.submittedAt}</span>
-              </div>
-              <div>
-                <span className="text-gray-500 uppercase font-bold text-[10px] block">Authorized Holder</span>
-                <span className="font-bold text-gray-900">{viewingPermit.company}</span>
-              </div>
-              <div>
-                <span className="text-gray-500 uppercase font-bold text-[10px] block">Permit Status</span>
-                <span className="font-bold text-emerald-700 uppercase">CLEARED / VALID</span>
-              </div>
-            </div>
-
-            <table className="w-full text-xs text-left border-collapse border border-gray-300 mb-6">
-              <thead>
-                <tr className="bg-gray-100 text-gray-700 uppercase text-[10px]">
-                  <th className="border border-gray-300 p-2">Item Description</th>
-                  <th className="border border-gray-300 p-2">Quantity</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="border border-gray-300 p-2 font-medium">{viewingPermit.product}</td>
-                  <td className="border border-gray-300 p-2">{viewingPermit.quantity}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div className="flex justify-between items-end pt-4 border-t border-gray-200">
-              <div className="border-2 border-emerald-800 p-2 text-center rounded bg-white">
-                <div className="w-16 h-16 bg-gray-200 flex items-center justify-center font-mono text-[9px] text-gray-500 mx-auto">
-                  [QR VALID]
+            <div className="max-h-96 overflow-auto border border-gray-200 rounded-lg p-2 bg-gray-50 flex justify-center">
+              {docPreview.startsWith('data:image') ? (
+                <img src={docPreview} alt="Attached Document" className="max-w-full h-auto object-contain" />
+              ) : (
+                <div className="py-12 text-center text-gray-600 text-xs">
+                  <p className="font-bold mb-2">Document Data Loaded Successfully</p>
+                  <a href={docPreview} download="attached-document" className="text-emerald-700 underline font-bold">Download File</a>
                 </div>
-                <span className="text-[9px] font-bold text-emerald-900 block mt-1">SECURE VERIFIED</span>
-              </div>
-              <div className="text-right">
-                <div className="border-b border-gray-400 w-40 ml-auto mb-1"></div>
-                <span className="text-[10px] font-bold text-gray-700 uppercase block">Comptroller General / Authorizing Officer</span>
-                <span className="text-[9px] text-gray-500 block">National Single Window Governance</span>
-              </div>
+              )}
             </div>
-
-            <div className="mt-6 flex justify-end space-x-3">
-              <button onClick={() => window.print()} className="bg-emerald-800 text-white px-4 py-2 rounded text-xs font-bold hover:bg-emerald-900">Print Permit</button>
-              <button onClick={() => setViewingPermit(null)} className="bg-gray-200 text-gray-800 px-4 py-2 rounded text-xs font-bold hover:bg-gray-300">Close Document</button>
-            </div>
+            <button onClick={() => setDocPreview(null)} className="w-full mt-4 bg-gray-800 text-white py-2 rounded-lg text-xs font-bold hover:bg-gray-900">
+              Close Preview
+            </button>
           </div>
         </div>
       )}
