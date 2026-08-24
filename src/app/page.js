@@ -11,7 +11,7 @@ export default function SingleWindowPortal() {
   const [systemUsers, setSystemUsers] = useState([
     { id: 1, name: 'Apex Logistics', email: 'trader@apex.ng', password: 'apex2026', role: 'trader', status: 'Active' },
     { id: 2, name: 'Levi Logistics', email: 'levilogistics', password: 'levi2008', role: 'trader', status: 'Active' },
-    { id: 3, name: 'Customs Officer', email: 'officer@customs.gov.ng', password: 'agency2026', role: 'agency', status: 'Active' },
+    { id: 3, name: 'Agency Officer', email: 'officer@customs.gov.ng', password: 'agency2026', role: 'agency', status: 'Active' },
     { id: 4, name: 'System Admin', email: 'admin@nsw.gov.ng', password: 'admin2026', role: 'admin', status: 'Active' }
   ]);
 
@@ -110,8 +110,9 @@ export default function SingleWindowPortal() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // PROOF OF AUTOMATED COMPLIANCE GATEWAY
       if (file.size > 5 * 1024 * 1024) {
-        setFileError('File size exceeds 5MB limit.');
+        setFileError('Gateway Block: File size exceeds 5MB limit.');
         setNewAppFile(null);
         e.target.value = '';
         return;
@@ -145,7 +146,7 @@ export default function SingleWindowPortal() {
     };
 
     setApplications([newApp, ...applications]);
-    addLog('Trader', `Submitted application ${newId} -> Gateway Passed`);
+    addLog(session.role.toUpperCase(), `Submitted application ${newId} -> Gateway Passed`);
     setShowNewAppModal(false);
     setNewAppCompany('');
     setNewAppProduct('');
@@ -184,7 +185,6 @@ export default function SingleWindowPortal() {
   const isDenied = (status) => status === 'Denied' || status === 'Rejected' || status === 'Gateway Failed';
   const isPending = (status) => !isApproved(status) && !isDenied(status);
 
-  // Core Data Isolation Logic
   const roleAccessibleApps = session?.role === 'trader' 
     ? applications.filter(app => app.company === session.name)
     : applications;
@@ -244,7 +244,7 @@ export default function SingleWindowPortal() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-emerald-950 flex flex-col items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border-t-8 border-emerald-700">
           <div className="flex justify-center mb-6">
             <img src="/logo.png" alt="Portal Logo" className="h-16 w-auto object-contain max-w-full" />
@@ -269,7 +269,7 @@ export default function SingleWindowPortal() {
                   required
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="Email or Username (e.g., admin@nsw.gov.ng)"
+                  placeholder="Email or Username"
                   className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                 />
               </div>
@@ -300,6 +300,16 @@ export default function SingleWindowPortal() {
               Sign In to Portal
             </button>
           </form>
+
+          {/* Added to prevent lockout and allow quick testing */}
+          <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-gray-700">
+            <p className="font-bold mb-2 uppercase text-[10px] text-emerald-800">Test Credentials For Supervisor Review:</p>
+            <ul className="space-y-1.5 font-mono">
+              <li><strong>Trader:</strong> levilogistics / levi2008</li>
+              <li><strong>Agency:</strong> officer@customs.gov.ng / agency2026</li>
+              <li><strong>Admin:</strong> admin@nsw.gov.ng / admin2026</li>
+            </ul>
+          </div>
         </div>
       </div>
     );
@@ -465,16 +475,24 @@ export default function SingleWindowPortal() {
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Regulatory & Review Portal</h3>
+                <h3 className="text-lg font-bold text-gray-900">Agency Portal</h3>
                 <p className="text-xs text-gray-500">Filter your approval queue by clicking the metric cards.</p>
               </div>
-              <input 
-                type="text" 
-                placeholder="Search Company, ID..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none w-full sm:w-auto"
-              />
+              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                <input 
+                  type="text" 
+                  placeholder="Search Company, ID..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none flex-grow sm:flex-grow-0"
+                />
+                <button 
+                  onClick={() => setShowNewAppModal(true)}
+                  className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition shadow whitespace-nowrap"
+                >
+                  + Submit on Behalf of Trader
+                </button>
+              </div>
             </div>
 
             <DashboardMetrics />
@@ -566,14 +584,22 @@ export default function SingleWindowPortal() {
                 <h3 className="text-lg font-bold text-gray-900">System Governance & Gateway Portal</h3>
                 <p className="text-xs text-gray-500 mt-1">Platform-wide trade metrics, user account access control, and broadcast notices.</p>
               </div>
-              <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                <span className="text-xs font-bold text-gray-600">Gateway Status:</span>
+              <div className="flex flex-wrap items-center gap-3">
                 <button 
-                  onClick={toggleGateway} 
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white transition ${gatewayStatus === 'Operational' ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'}`}
+                  onClick={() => setShowNewAppModal(true)}
+                  className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition shadow whitespace-nowrap"
                 >
-                  {gatewayStatus} (Toggle)
+                  + Create Test Record
                 </button>
+                <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  <span className="text-xs font-bold text-gray-600">Gateway Status:</span>
+                  <button 
+                    onClick={toggleGateway} 
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white transition ${gatewayStatus === 'Operational' ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'}`}
+                  >
+                    {gatewayStatus} (Toggle)
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -785,7 +811,7 @@ export default function SingleWindowPortal() {
                   <div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm ${isPending(trackedApp.status) ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'}`}>
                     {isPending(trackedApp.status) ? '⏳' : '✓'}
                   </div>
-                  <h4 className="font-bold text-gray-900 text-sm">Customs and Regulatory Review</h4>
+                  <h4 className="font-bold text-gray-900 text-sm">Agency</h4>
                   <p className="text-xs text-gray-500">
                     {isPending(trackedApp.status) ? 'Document verification in progress' : 'Document verification completed'}
                   </p>
