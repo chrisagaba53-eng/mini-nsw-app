@@ -311,6 +311,11 @@ export default function SingleWindowPortal() {
           
           <div className="flex items-center space-x-3">
             <img src="/logo.png" alt="Portal Logo" className="h-10 w-auto object-contain" />
+            <div className="hidden sm:block border-l border-emerald-700 pl-3 ml-1">
+              <span className="text-sm font-semibold tracking-wide text-emerald-50">
+                Trade Operations Portal
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center space-x-5 text-xs">
@@ -496,7 +501,7 @@ export default function SingleWindowPortal() {
                           {app.attachedDocument ? (
                             <button 
                               onClick={() => setDocPreview(app.attachedDocument)} 
-                              className="bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded text-xs font-bold hover:bg-blue-100 transition shadow-sm"
+                              className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded text-xs font-bold hover:bg-emerald-100 transition shadow-sm"
                             >
                               View Doc
                             </button>
@@ -601,7 +606,6 @@ export default function SingleWindowPortal() {
                       <th className="py-3 px-4">Company</th>
                       <th className="py-3 px-4">Type</th>
                       <th className="py-3 px-4">State</th>
-                      <th className="py-3 px-4">Audit & Control Actions</th>
                     </tr>
                   </thead>
                   <tbody className="text-sm divide-y divide-gray-100 bg-white">
@@ -614,28 +618,6 @@ export default function SingleWindowPortal() {
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isApproved(app.status) ? 'bg-green-100 text-green-800' : isDenied(app.status) ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
                             {app.status}
                           </span>
-                        </td>
-                        <td className="py-2 px-4 space-x-2">
-                          {isApproved(app.status) && (
-                            <button 
-                              onClick={() => { setTrackedApp(app); setShowPermit(true); }}
-                              className="text-emerald-800 hover:text-emerald-900 text-[10px] font-bold uppercase border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded transition shadow-sm"
-                            >
-                              View Permit
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => setTrackedApp(app)}
-                            className="text-emerald-700 hover:text-emerald-900 text-[10px] font-bold uppercase border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded transition shadow-sm"
-                          >
-                            View Details
-                          </button>
-                          <button 
-                            onClick={() => handleFlagApp(app.id)}
-                            className="text-amber-700 hover:text-amber-900 text-[10px] font-bold uppercase border border-amber-200 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded transition shadow-sm"
-                          >
-                            Flag for Audit
-                          </button>
                         </td>
                       </tr>
                     ))}
@@ -820,21 +802,6 @@ export default function SingleWindowPortal() {
 
               </div>
 
-              {isApproved(trackedApp.status) && (
-                <div className="mt-8 bg-emerald-50/50 border border-emerald-100 rounded-lg p-4 flex justify-between items-center shadow-sm">
-                  <div>
-                    <h5 className="text-xs font-bold text-gray-900">Official E-Permit Generated</h5>
-                    <p className="text-[10px] text-gray-500 uppercase">{trackedApp.id}-PERMIT</p>
-                  </div>
-                  <button
-                    onClick={() => setShowPermit(true)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded shadow transition"
-                  >
-                    View Official E-Permit
-                  </button>
-                </div>
-              )}
-
               <div className="mt-6 text-center">
                 <button onClick={() => setTrackedApp(null)} className="text-xs text-gray-500 hover:text-gray-700 font-bold transition">
                   Close Window
@@ -880,7 +847,6 @@ export default function SingleWindowPortal() {
                   <p className="text-[10px] font-bold uppercase text-gray-600">Authorized Signature</p>
                 </div>
 
-                {/* Enhanced Official Seal */}
                 <div className="w-28 h-28 border-4 border-double border-red-800 rounded-full flex flex-col items-center justify-center p-1 text-center bg-red-50/10 transform -rotate-12 opacity-90 select-none pointer-events-none">
                   <div className="w-full h-full border border-dashed border-red-700 rounded-full flex flex-col items-center justify-center p-1">
                     <span className="text-[9px] font-black uppercase tracking-widest text-red-900 leading-tight">
