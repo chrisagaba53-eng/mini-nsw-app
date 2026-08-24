@@ -9,10 +9,9 @@ export default function SingleWindowPortal() {
   const [loginError, setLoginError] = useState('');
 
   const [systemUsers, setSystemUsers] = useState([
-    { id: 1, name: 'Apex Logistics', email: 'trader@apex.ng', password: 'apex2026', role: 'trader', status: 'Active' },
-    { id: 2, name: 'Levi Logistics', email: 'levilogistics', password: 'levi2008', role: 'trader', status: 'Active' },
-    { id: 3, name: 'Customs Officer', email: 'officer@customs.gov.ng', password: 'agency2026', role: 'agency', status: 'Active' },
-    { id: 4, name: 'System Admin', email: 'admin@nsw.gov.ng', password: 'admin2026', role: 'admin', status: 'Active' }
+    { id: 1, name: 'Apex Logistics', email: 'trader@apex.ng', role: 'trader', status: 'Active' },
+    { id: 2, name: 'Customs Officer', email: 'officer@customs.gov.ng', role: 'agency', status: 'Active' },
+    { id: 3, name: 'System Admin', email: 'admin@nsw.gov.ng', role: 'admin', status: 'Active' }
   ]);
 
   useEffect(() => {
@@ -37,7 +36,7 @@ export default function SingleWindowPortal() {
       type: 'Import Permit',
       product: 'Industrial Solar Panels',
       quantity: '500 Units',
-      company: 'Apex Logistics',
+      company: 'Apex Logistics Ltd',
       status: 'Approved',
       gatewayPassed: true,
       submittedAt: '2026-08-10',
@@ -48,7 +47,7 @@ export default function SingleWindowPortal() {
       type: 'Export License',
       product: 'Raw Cocoa Beans',
       quantity: '50 Metric Tons',
-      company: 'Levi Logistics',
+      company: 'AgroExport Nigeria',
       status: 'Approved',
       gatewayPassed: true,
       submittedAt: '2026-08-12',
@@ -82,21 +81,21 @@ export default function SingleWindowPortal() {
     e.preventDefault();
     const cleanEmail = emailInput.trim().toLowerCase();
 
-    const targetUser = systemUsers.find(
-      u => u.email.toLowerCase() === cleanEmail && u.password === passwordInput
-    );
-
-    if (!targetUser) {
-      setLoginError('Invalid credentials. Access Denied.');
-      return;
-    }
-
-    if (targetUser.status === 'Suspended') {
+    const targetUser = systemUsers.find(u => u.email.toLowerCase() === cleanEmail);
+    if (targetUser && targetUser.status === 'Suspended') {
       setLoginError('Account Suspended: Access revoked by System Administrator.');
       return;
     }
 
-    setSession({ name: targetUser.name, role: targetUser.role, email: targetUser.email });
+    if (cleanEmail.includes('trader')) {
+      setSession({ name: 'Trader Enterprise', role: 'trader', email: cleanEmail });
+    } else if (cleanEmail.includes('agency') || cleanEmail.includes('customs')) {
+      setSession({ name: 'Customs Regulatory Unit', role: 'agency', email: cleanEmail });
+    } else if (cleanEmail.includes('admin')) {
+      setSession({ name: 'System Administrator', role: 'admin', email: cleanEmail });
+    } else {
+      setSession({ name: 'Portal User', role: 'trader', email: cleanEmail });
+    }
     setLoginError('');
   };
 
@@ -135,7 +134,7 @@ export default function SingleWindowPortal() {
     const newApp = {
       id: newId,
       type: newAppType,
-      company: session?.role === 'trader' ? session.name : newAppCompany,
+      company: newAppCompany || session?.name || 'Trader Enterprise',
       product: newAppProduct,
       quantity: newAppQuantity,
       status: 'Pending Review',
@@ -161,6 +160,11 @@ export default function SingleWindowPortal() {
     addLog('Agency', `Updated ${appId} to ${newStatus}`);
   };
 
+  const handleFlagApp = (appId) => {
+    addLog('Admin', `Flagged application ${appId} for mandatory compliance audit`);
+    alert(`Application ${appId} has been flagged for regulatory review. Activity logged.`);
+  };
+
   const toggleGateway = () => {
     const nextStatus = gatewayStatus === 'Operational' ? 'Maintenance' : 'Operational';
     setGatewayStatus(nextStatus);
@@ -184,12 +188,7 @@ export default function SingleWindowPortal() {
   const isDenied = (status) => status === 'Denied' || status === 'Rejected' || status === 'Gateway Failed';
   const isPending = (status) => !isApproved(status) && !isDenied(status);
 
-  // Core Data Isolation Logic
-  const roleAccessibleApps = session?.role === 'trader' 
-    ? applications.filter(app => app.company === session.name)
-    : applications;
-
-  const filteredApps = roleAccessibleApps.filter(app => {
+  const filteredApps = applications.filter(app => {
     if (selectedFilter === 'Approved') return isApproved(app.status);
     if (selectedFilter === 'Pending') return isPending(app.status);
     if (selectedFilter === 'Denied') return isDenied(app.status);
@@ -203,10 +202,10 @@ export default function SingleWindowPortal() {
   );
 
   const DashboardMetrics = () => {
-    const total = roleAccessibleApps.length;
-    const approved = roleAccessibleApps.filter(a => isApproved(a.status)).length;
-    const denied = roleAccessibleApps.filter(a => isDenied(a.status)).length;
-    const pending = roleAccessibleApps.filter(a => isPending(a.status)).length;
+    const total = applications.length;
+    const approved = applications.filter(a => isApproved(a.status)).length;
+    const denied = applications.filter(a => isDenied(a.status)).length;
+    const pending = applications.filter(a => isPending(a.status)).length;
 
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -265,11 +264,11 @@ export default function SingleWindowPortal() {
                   </svg>
                 </span>
                 <input 
-                  type="text" 
+                  type="email" 
                   required
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="Email or Username (e.g., admin@nsw.gov.ng)"
+                  placeholder="trader@apex.ng, agency@customs.gov.ng..."
                   className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                 />
               </div>
@@ -695,22 +694,17 @@ export default function SingleWindowPortal() {
                   <option value="Transit Goods Clearance">Transit Goods Clearance</option>
                 </select>
               </div>
-              
-              {/* Only show Company Name input if the user is NOT a trader */}
-              {session?.role !== 'trader' && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Company Name</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="e.g. Apex Logistics Ltd"
-                    value={newAppCompany}
-                    onChange={(e) => setNewAppCompany(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                  />
-                </div>
-              )}
-
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Company Name</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Apex Logistics Ltd"
+                  value={newAppCompany}
+                  onChange={(e) => setNewAppCompany(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                />
+              </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Product Description</label>
                 <input 
