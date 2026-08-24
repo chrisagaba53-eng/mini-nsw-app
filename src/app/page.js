@@ -4,9 +4,18 @@ import React, { useState, useEffect } from 'react';
 
 export default function SingleWindowPortal() {
   const [session, setSession] = useState(null);
+  const [isRegistering, setIsRegistering] = useState(false);
+  
+  // Login State
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [authSuccess, setAuthSuccess] = useState('');
+
+  // Registration State
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
 
   const [systemUsers, setSystemUsers] = useState([
     { id: 1, name: 'Apex Logistics', email: 'trader@apex.ng', password: 'apex2026', role: 'trader', status: 'Active' },
@@ -80,14 +89,16 @@ export default function SingleWindowPortal() {
 
   const handleSecureLogin = (e) => {
     e.preventDefault();
-    const cleanEmail = emailInput.trim().toLowerCase();
+    setLoginError('');
+    setAuthSuccess('');
 
+    const cleanEmail = emailInput.trim().toLowerCase();
     const targetUser = systemUsers.find(
       u => u.email.toLowerCase() === cleanEmail && u.password === passwordInput
     );
 
     if (!targetUser) {
-      setLoginError('Invalid credentials. Access Denied.');
+      setLoginError('Invalid credentials. Account not found or wrong password.');
       return;
     }
 
@@ -97,7 +108,41 @@ export default function SingleWindowPortal() {
     }
 
     setSession({ name: targetUser.name, role: targetUser.role, email: targetUser.email });
+  };
+
+  const handleRegisterTrader = (e) => {
+    e.preventDefault();
     setLoginError('');
+    setAuthSuccess('');
+
+    const cleanEmail = regEmail.trim().toLowerCase();
+    const existingUser = systemUsers.find(u => u.email.toLowerCase() === cleanEmail);
+
+    if (existingUser) {
+      setLoginError('An account with this email/username already exists.');
+      return;
+    }
+
+    const newUser = {
+      id: Date.now(),
+      name: regName.trim(),
+      email: cleanEmail,
+      password: regPassword,
+      role: 'trader',
+      status: 'Active'
+    };
+
+    const updatedUsers = [...systemUsers, newUser];
+    updateUsersState(updatedUsers);
+
+    addLog('System', `New Trader registered: ${newUser.name}`);
+    setAuthSuccess('Account created successfully! You can now log in.');
+    setIsRegistering(false);
+    setEmailInput(cleanEmail);
+    setPasswordInput(regPassword);
+    setRegName('');
+    setRegEmail('');
+    setRegPassword('');
   };
 
   const handleLogout = () => {
@@ -105,12 +150,12 @@ export default function SingleWindowPortal() {
     setEmailInput('');
     setPasswordInput('');
     setLoginError('');
+    setAuthSuccess('');
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // PROOF OF AUTOMATED COMPLIANCE GATEWAY
       if (file.size > 5 * 1024 * 1024) {
         setFileError('Gateway Block: File size exceeds 5MB limit.');
         setNewAppFile(null);
@@ -250,61 +295,114 @@ export default function SingleWindowPortal() {
             <img src="/logo.png" alt="Portal Logo" className="h-16 w-auto object-contain max-w-full" />
           </div>
 
+          <div className="flex border-b border-gray-200 mb-6">
+            <button
+              onClick={() => { setIsRegistering(false); setLoginError(''); }}
+              className={`flex-1 py-2 text-center text-xs font-bold uppercase tracking-wider border-b-2 transition ${!isRegistering ? 'border-emerald-700 text-emerald-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => { setIsRegistering(true); setLoginError(''); }}
+              className={`flex-1 py-2 text-center text-xs font-bold uppercase tracking-wider border-b-2 transition ${isRegistering ? 'border-emerald-700 text-emerald-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+            >
+              Register Trader
+            </button>
+          </div>
+
           {loginError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded text-center">
               {loginError}
             </div>
           )}
 
-          <form onSubmit={handleSecureLogin} className="space-y-4">
-            <div>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-emerald-700">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </span>
+          {authSuccess && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 text-xs font-bold rounded text-center">
+              {authSuccess}
+            </div>
+          )}
+
+          {!isRegistering ? (
+            <form onSubmit={handleSecureLogin} className="space-y-4">
+              <div>
                 <input 
                   type="text" 
                   required
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="Email or Username"
-                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                 />
               </div>
-            </div>
 
-            <div>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-emerald-700">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </span>
+              <div>
                 <input 
                   type="password" 
                   required
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   placeholder="Password"
-                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                 />
               </div>
-            </div>
 
-            <button 
-              type="submit"
-              className="w-full bg-emerald-800 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-emerald-900 transition shadow"
-            >
-              Sign In to Portal
-            </button>
-          </form>
+              <button 
+                type="submit"
+                className="w-full bg-emerald-800 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-emerald-900 transition shadow"
+              >
+                Sign In to Portal
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleRegisterTrader} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Company / Entity Name</label>
+                <input 
+                  type="text" 
+                  required
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                  placeholder="e.g. Acme Global Logistics"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                />
+              </div>
 
-          {/* Added to prevent lockout and allow quick testing */}
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Trader Email / Username</label>
+                <input 
+                  type="text" 
+                  required
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  placeholder="e.g. trader@acme.ng"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Create Password</label>
+                <input 
+                  type="password" 
+                  required
+                  value={regPassword}
+                  onChange={(e) => setRegPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                />
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full bg-emerald-800 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-emerald-900 transition shadow"
+              >
+                Create Account & Register
+              </button>
+            </form>
+          )}
+
           <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-gray-700">
-            <p className="font-bold mb-2 uppercase text-[10px] text-emerald-800">Test Credentials For Supervisor Review:</p>
-            <ul className="space-y-1.5 font-mono">
+            <p className="font-bold mb-2 uppercase text-[10px] text-emerald-800">Default Test Accounts:</p>
+            <ul className="space-y-1.5 font-mono text-[11px]">
               <li><strong>Trader:</strong> levilogistics / levi2008</li>
               <li><strong>Agency:</strong> officer@customs.gov.ng / agency2026</li>
               <li><strong>Admin:</strong> admin@nsw.gov.ng / admin2026</li>
@@ -722,7 +820,6 @@ export default function SingleWindowPortal() {
                 </select>
               </div>
               
-              {/* Only show Company Name input if the user is NOT a trader */}
               {session?.role !== 'trader' && (
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Company Name</label>
@@ -791,7 +888,6 @@ export default function SingleWindowPortal() {
             <div className="p-6 bg-gray-50">
               <div className="relative pl-6 border-l-2 border-emerald-600 space-y-6">
                 
-                {/* Step 1: Submission */}
                 <div className="relative">
                   <div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm">✓</div>
                   <h4 className="font-bold text-gray-900 text-sm">Application Submitted</h4>
@@ -799,14 +895,12 @@ export default function SingleWindowPortal() {
                   <p className="text-xs text-gray-400 mt-0.5">{trackedApp.submittedAt}</p>
                 </div>
                 
-                {/* Step 2: Automated Gateway Validation */}
                 <div className="relative">
                   <div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm">✓</div>
                   <h4 className="font-bold text-gray-900 text-sm">Automated Compliance Gateway</h4>
                   <p className="text-xs text-gray-500">Product parameters and trade regulation checks passed</p>
                 </div>
                 
-                {/* Step 3: Regulatory Review */}
                 <div className="relative">
                   <div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm ${isPending(trackedApp.status) ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'}`}>
                     {isPending(trackedApp.status) ? '⏳' : '✓'}
@@ -817,7 +911,6 @@ export default function SingleWindowPortal() {
                   </p>
                 </div>
                 
-                {/* Step 4: Final Decision */}
                 <div className="relative">
                   <div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-sm ${isApproved(trackedApp.status) ? 'bg-emerald-600 text-white' : isDenied(trackedApp.status) ? 'bg-red-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
                     {isApproved(trackedApp.status) ? '✓' : isDenied(trackedApp.status) ? '✕' : '⏳'}
