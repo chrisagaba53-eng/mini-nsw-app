@@ -1,23 +1,29 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from "next/link";
 
-export default function SingleWindowPortal() {
+export default function UnifiedNationalSingleWindow() {
+  // ==========================================
+  // 1. STATE MANAGEMENT (PORTAL & LANDING)
+  // ==========================================
+  
+  // Landing Page States
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeModal, setActiveModal] = useState(null);
+
+  // Authentication States
   const [session, setSession] = useState(null);
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // Fixed IAM: Synchronous state initialization from localStorage to prevent delayed status loads
+  // Portal Data States
   const [systemUsers, setSystemUsers] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedUsers = localStorage.getItem('nsw_system_users');
       if (savedUsers) {
-        try {
-          return JSON.parse(savedUsers);
-        } catch (e) {
-          console.error('Failed to parse system users', e);
-        }
+        try { return JSON.parse(savedUsers); } catch (e) { console.error(e); }
       }
     }
     return [
@@ -27,36 +33,9 @@ export default function SingleWindowPortal() {
     ];
   });
 
-  const updateUsersState = (newUsers) => {
-    setSystemUsers(newUsers);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('nsw_system_users', JSON.stringify(newUsers));
-    }
-  };
-
   const [applications, setApplications] = useState([
-    {
-      id: 'NSW-2026-1042',
-      type: 'Import Permit',
-      product: 'Industrial Solar Panels',
-      quantity: '500 Units',
-      company: 'Apex Logistics Ltd',
-      status: 'Approved',
-      gatewayPassed: true,
-      submittedAt: '2026-08-10',
-      attachedDocument: null
-    },
-    {
-      id: 'NSW-2026-1088',
-      type: 'Export License',
-      product: 'Raw Cocoa Beans',
-      quantity: '50 Metric Tons',
-      company: 'AgroExport Nigeria',
-      status: 'Approved',
-      gatewayPassed: true,
-      submittedAt: '2026-08-12',
-      attachedDocument: null
-    }
+    { id: 'NSW-2026-1042', type: 'Import Permit', product: 'Industrial Solar Panels', quantity: '500 Units', company: 'Apex Logistics Ltd', status: 'Approved', gatewayPassed: true, submittedAt: '2026-08-10', attachedDocument: null },
+    { id: 'NSW-2026-1088', type: 'Export License', product: 'Raw Cocoa Beans', quantity: '50 Metric Tons', company: 'AgroExport Nigeria', status: 'Approved', gatewayPassed: true, submittedAt: '2026-08-12', attachedDocument: null }
   ]);
 
   const [selectedFilter, setSelectedFilter] = useState('All');
@@ -81,15 +60,20 @@ export default function SingleWindowPortal() {
   const [fileError, setFileError] = useState('');
   const [docPreview, setDocPreview] = useState(null);
 
-  // Strict Login Verification
+  // ==========================================
+  // 2. LOGIC & HANDLERS
+  // ==========================================
+
+  const updateUsersState = (newUsers) => {
+    setSystemUsers(newUsers);
+    if (typeof window !== 'undefined') localStorage.setItem('nsw_system_users', JSON.stringify(newUsers));
+  };
+
   const handleSecureLogin = (e) => {
     e.preventDefault();
     const cleanEmail = emailInput.trim().toLowerCase();
-
-    // Check strict matching first
     let targetUser = systemUsers.find(u => u.email.toLowerCase() === cleanEmail);
 
-    // If no exact email match, map by role type but retain user record
     if (!targetUser) {
       if (cleanEmail.includes('trader')) targetUser = systemUsers.find(u => u.role === 'trader');
       else if (cleanEmail.includes('agency') || cleanEmail.includes('customs')) targetUser = systemUsers.find(u => u.role === 'agency');
@@ -97,20 +81,23 @@ export default function SingleWindowPortal() {
     }
 
     if (targetUser && targetUser.status === 'Suspended') {
-      setLoginError(`Account Suspended: Access for ${targetUser.email} has been revoked by System Administrator.`);
+      setLoginError(`Account Suspended: Access for ${targetUser.email} has been revoked.`);
       return;
     }
 
-    if (cleanEmail.includes('trader')) {
-      setSession({ name: targetUser?.name || 'Trader Enterprise', role: 'trader', email: cleanEmail });
-    } else if (cleanEmail.includes('agency') || cleanEmail.includes('customs')) {
-      setSession({ name: targetUser?.name || 'Customs Regulatory Unit', role: 'agency', email: cleanEmail });
-    } else if (cleanEmail.includes('admin')) {
-      setSession({ name: targetUser?.name || 'System Administrator', role: 'admin', email: cleanEmail });
-    } else {
-      setSession({ name: 'Portal User', role: 'trader', email: cleanEmail });
-    }
+    if (cleanEmail.includes('trader')) setSession({ name: targetUser?.name || 'Trader Enterprise', role: 'trader', email: cleanEmail });
+    else if (cleanEmail.includes('agency') || cleanEmail.includes('customs')) setSession({ name: targetUser?.name || 'Customs Regulatory Unit', role: 'agency', email: cleanEmail });
+    else if (cleanEmail.includes('admin')) setSession({ name: targetUser?.name || 'System Administrator', role: 'admin', email: cleanEmail });
+    else setSession({ name: 'Portal User', role: 'trader', email: cleanEmail });
+    
     setLoginError('');
+    setActiveModal(null);
+  };
+
+  const handleRegisterSubmit = (e) => {
+    e.preventDefault();
+    alert("Registration submission successful!");
+    setActiveModal(null);
   };
 
   const handleLogout = () => {
@@ -120,15 +107,15 @@ export default function SingleWindowPortal() {
     setLoginError('');
   };
 
+  const addLog = (role, action) => {
+    setAuditLogs(prev => [{ id: Date.now(), role, action, time: new Date().toLocaleTimeString() }, ...prev]);
+    setUnreadCount(prev => prev + 1);
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setFileError('File size exceeds 5MB limit.');
-        setNewAppFile(null);
-        e.target.value = '';
-        return;
-      }
+      if (file.size > 5 * 1024 * 1024) { setFileError('File size exceeds 5MB limit.'); setNewAppFile(null); e.target.value = ''; return; }
       setFileError('');
       const reader = new FileReader();
       reader.onloadend = () => setNewAppFile(reader.result);
@@ -136,48 +123,20 @@ export default function SingleWindowPortal() {
     }
   };
 
-  const addLog = (role, action) => {
-    setAuditLogs(prev => [{ id: Date.now(), role, action, time: new Date().toLocaleTimeString() }, ...prev]);
-    setUnreadCount(prev => prev + 1);
-  };
-
   const handleFormSubmitApplication = (e) => {
     e.preventDefault();
     const newId = `NSW-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const newApp = {
-      id: newId,
-      type: newAppType,
-      company: newAppCompany || session?.name || 'Trader Enterprise',
-      product: newAppProduct,
-      quantity: newAppQuantity,
-      status: 'Pending Review',
-      gatewayPassed: true,
-      submittedAt: new Date().toISOString().split('T')[0],
-      attachedDocument: newAppFile
-    };
-
+    const newApp = { id: newId, type: newAppType, company: newAppCompany || session?.name || 'Trader Enterprise', product: newAppProduct, quantity: newAppQuantity, status: 'Pending Review', gatewayPassed: true, submittedAt: new Date().toISOString().split('T')[0], attachedDocument: newAppFile };
     setApplications([newApp, ...applications]);
     addLog('Trader', `Submitted application ${newId} -> Gateway Passed`);
     setShowNewAppModal(false);
-    setNewAppCompany('');
-    setNewAppProduct('');
-    setNewAppQuantity('');
-    setNewAppFile(null);
+    setNewAppCompany(''); setNewAppProduct(''); setNewAppQuantity(''); setNewAppFile(null);
   };
 
   const handleAgencyAction = (appId, newStatus) => {
     setApplications(applications.map(app => app.id === appId ? { ...app, status: newStatus } : app));
-    if (trackedApp && trackedApp.id === appId) {
-      setTrackedApp({ ...trackedApp, status: newStatus });
-    }
+    if (trackedApp && trackedApp.id === appId) setTrackedApp({ ...trackedApp, status: newStatus });
     addLog('Agency', `Updated ${appId} to ${newStatus}`);
-  };
-
-  const toggleGateway = () => {
-    const nextStatus = gatewayStatus === 'Operational' ? 'Maintenance' : 'Operational';
-    setGatewayStatus(nextStatus);
-    addLog('Admin', `Toggled Gateway status to ${nextStatus}`);
   };
 
   const handleUserStatusChange = (userId, newStatus) => {
@@ -204,169 +163,295 @@ export default function SingleWindowPortal() {
     return true;
   });
 
-  // Query Engine: Searches across all application attributes
   const displayedApps = filteredApps.filter(app => {
     const query = searchTerm.toLowerCase();
-    return (
-      app.id.toLowerCase().includes(query) ||
-      app.product.toLowerCase().includes(query) ||
-      app.company.toLowerCase().includes(query) ||
-      app.type.toLowerCase().includes(query) ||
-      app.status.toLowerCase().includes(query) ||
-      (app.submittedAt && app.submittedAt.toLowerCase().includes(query))
-    );
+    return ( app.id.toLowerCase().includes(query) || app.product.toLowerCase().includes(query) || app.company.toLowerCase().includes(query) || app.type.toLowerCase().includes(query) || app.status.toLowerCase().includes(query) || (app.submittedAt && app.submittedAt.toLowerCase().includes(query)) );
   });
 
-  const DashboardMetrics = () => {
-    const total = applications.length;
-    const approved = applications.filter(a => isApproved(a.status)).length;
-    const denied = applications.filter(a => isDenied(a.status)).length;
-    const pending = applications.filter(a => isPending(a.status)).length;
-
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div 
-          onClick={() => setSelectedFilter('All')}
-          className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'All' ? 'bg-gray-100 border-gray-800 ring-2 ring-gray-200' : 'bg-white border-gray-200 hover:border-gray-400'}`}
-        >
-          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Total Applications</span>
-          <span className="text-3xl font-extrabold text-black">{total}</span>
-        </div>
-        <div 
-          onClick={() => setSelectedFilter('Pending')}
-          className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Pending' ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-100' : 'bg-white border-gray-200 hover:border-amber-300'}`}
-        >
-          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Pending Review</span>
-          <span className="text-3xl font-extrabold text-amber-600">{pending}</span>
-        </div>
-        <div 
-          onClick={() => setSelectedFilter('Approved')}
-          className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Approved' ? 'bg-green-50 border-green-500 ring-2 ring-green-100' : 'bg-white border-gray-200 hover:border-green-300'}`}
-        >
-          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Approved</span>
-          <span className="text-3xl font-extrabold text-green-700">{approved}</span>
-        </div>
-        <div 
-          onClick={() => setSelectedFilter('Denied')}
-          className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Denied' ? 'bg-red-50 border-red-500 ring-2 ring-red-100' : 'bg-white border-gray-200 hover:border-red-300'}`}
-        >
-          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Denied / Blocked</span>
-          <span className="text-3xl font-extrabold text-red-600">{denied}</span>
-        </div>
-      </div>
-    );
-  };
-
+  // ==========================================
+  // 3. RENDER: LANDING PAGE (Unauthenticated)
+  // ==========================================
   if (!session) {
     return (
-      <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border-t-8 border-emerald-700">
-          <div className="flex justify-center mb-6">
-            <img src="/logo.png" alt="Portal Logo" className="h-16 w-auto object-contain max-w-full" />
+      <>
+        <style dangerouslySetInnerHTML={{ __html: `
+          html { scroll-behavior: smooth; }
+          * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+          body { background-color: #f8f9fa; color: #333; }
+          header { display: flex; justify-content: space-between; align-items: center; background-color: #ffffff; padding: 15px 5%; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+          .logo-container { display: flex; align-items: center; gap: 15px; }
+          .logo-container img { height: 50px; width: 50px; background-color: #ddd; }
+          .logo-container h1 { font-size: 22px; color: #00563f; }
+          nav ul { display: flex; list-style: none; gap: 25px; }
+          nav a { text-decoration: none; color: #333; font-weight: 600; }
+          nav a:hover { color: #00563f; }
+          .auth-buttons button { padding: 10px 20px; margin-left: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+          .auth-buttons button:first-of-type { background-color: transparent; color: #00563f; border: 1px solid #00563f; }
+          .auth-buttons button:last-of-type { background-color: #00563f; color: #ffffff; }
+          .menu-toggle { display: none; font-size: 28px; background: none; border: none; color: #00563f; cursor: pointer; }
+          .hero-section { text-align: center; padding: 80px 20px; background-color: #e8f5e9; }
+          .hero-section h2 { font-size: 40px; color: #00563f; margin-bottom: 15px; }
+          .hero-section p { font-size: 18px; margin-bottom: 25px; color: #555; }
+          .hero-actions button { padding: 12px 24px; margin: 10px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; }
+          .hero-actions button:first-child { background-color: #00563f; color: white; }
+          .hero-actions button:last-child { background-color: white; color: #00563f; border: 1px solid #00563f; }
+          .statistics-row { display: flex; justify-content: center; gap: 30px; margin-top: 60px; }
+          .stat-box { background-color: white; padding: 25px 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-width: 200px; }
+          .stat-box h3 { font-size: 32px; color: #00563f; margin-bottom: 5px; }
+          .about-section { padding: 60px 5%; background-color: #ffffff; text-align: center; }
+          .about-content { max-width: 800px; margin: 0 auto; line-height: 1.6; color: #555; font-size: 16px; }
+          .services-section, .stats-section, .news-section { padding: 60px 5%; background-color: #f8f9fa; text-align: center; }
+          .stats-section { background-color: #f0f4f1; }
+          h2 { font-size: 32px; color: #00563f; margin-bottom: 5px; }
+          .section-subtitle { color: #666; margin-bottom: 40px; }
+          .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; text-align: left; }
+          .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-top: 30px; }
+          .news-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; text-align: left; }
+          .service-card, .stat-card, .news-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 25px; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.03); display: flex; flex-direction: column; justify-content: space-between; }
+          .stat-card { border-left: 4px solid #00563f; padding: 20px; }
+          .service-card h3, .news-card h3 { font-size: 18px; color: #222; margin-bottom: 10px; }
+          .service-card p, .news-card p { font-size: 14px; color: #666; margin-bottom: 20px; line-height: 1.5; }
+          .service-card .tag { display: inline-block; background-color: #e8f5e9; color: #00563f; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; width: fit-content; margin-bottom: 15px; }
+          .card-btn, .news-link { text-decoration: none; color: #00563f; font-weight: bold; font-size: 14px; cursor: pointer; border: none; background: none; padding: 0; }
+          .stat-card .stat-number { font-size: 28px; font-weight: bold; color: #00563f; margin: 10px 0 5px 0; }
+          footer { background-color: #1a2521; color: #e0e0e0; padding-top: 50px; }
+          .footer-container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 30px; padding: 0 5% 40px 5%; }
+          .footer-col { flex: 1; min-width: 220px; }
+          .footer-col h3, .footer-col h4 { color: #ffffff; margin-bottom: 15px; }
+          .footer-col a { color: #ccc; text-decoration: none; font-size: 14px; }
+          .footer-bottom { border-top: 1px solid #2d3a35; text-align: center; padding: 20px; font-size: 13px; }
+          .modal { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+          .modal-content { background-color: #ffffff; padding: 30px; border-radius: 8px; width: 90%; max-width: 400px; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+          .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #666; }
+          .modal h3 { color: #00563f; margin-bottom: 20px; text-align: center; }
+          .modal input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; }
+          .modal-submit { width: 100%; padding: 10px; background-color: #00563f; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+          @media screen and (max-width: 768px) {
+              header { flex-wrap: wrap; padding: 15px 20px; }
+              .logo-container h1 { font-size: 18px; }
+              .menu-toggle { display: block; }
+              nav { display: none; width: 100%; order: 3; margin-top: 15px; background-color: #ffffff; padding: 15px 0; border-top: 1px solid #e0e0e0; }
+              nav.active { display: block; }
+              nav ul { flex-direction: column; align-items: center; gap: 15px; }
+              nav a { display: block; padding: 5px 0; }
+              .auth-buttons { display: flex; gap: 10px; }
+              .auth-buttons button { margin-left: 0; padding: 8px 14px; }
+              .hero-section { padding: 40px 15px; }
+              .hero-section h2 { font-size: 24px; }
+              .hero-actions { display: flex; flex-direction: column; gap: 10px; }
+              .hero-actions button { margin: 0; width: 100%; }
+              .statistics-row { flex-direction: column; align-items: center; gap: 15px; }
+              .stat-box { width: 100%; min-width: unset; }
+              .services-grid, .stats-grid, .news-grid { grid-template-columns: 1fr; }
+              .footer-container { flex-direction: column; text-align: center; gap: 30px; }
+              .footer-col { min-width: 100%; }
+          }
+        `}} />
+
+        <header>
+          <Link href="/" className="logo-container" style={{ textDecoration: "none" }}>
+            <img src="/logo.png" alt="Nigeria Coat of Arms" />
+            <h1>National Single Window</h1>
+          </Link>
+          <button className="menu-toggle" aria-label="Toggle Navigation" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            &#9776;
+          </button>
+          <nav className={isMobileMenuOpen ? "active" : ""} onClick={() => setIsMobileMenuOpen(false)}>
+            <ul>
+              <li><a href="#home">Home</a></li>
+              <li><a href="#about">About Us</a></li>
+              <li><a href="#services">Services</a></li>
+              <li><a href="#news">News</a></li>
+              <li><a href="#contact">Contact Us</a></li>
+            </ul>
+          </nav>
+          <div className="auth-buttons">
+            <button onClick={() => setActiveModal('register')}>Register</button>
+            <button onClick={() => setActiveModal('login')}>Login</button>
           </div>
+        </header>
 
-          {loginError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded text-center">
-              {loginError}
+        <section id="home" className="hero-section">
+          <h2>Christopher's Premier Trade Platform</h2>
+          <p>Digital Trade Gateway</p>
+          <p>Connecting Nigeria's trade ecosystem through innovative digital solutions</p>
+          <div className="hero-actions">
+            <button onClick={() => setActiveModal('register')}>Get Started</button>
+            <button onClick={() => window.location.href = '#services'}>Explore Features</button>
+          </div>
+          <div className="statistics-row">
+            <div className="stat-box"><h3>9185</h3><p>Active Users</p></div>
+            <div className="stat-box"><h3>24/7</h3><p>Support</p></div>
+            <div className="stat-box"><h3>99.5%</h3><p>Uptime</p></div>
+          </div>
+        </section>
+
+        <section id="about" className="about-section">
+          <h2>About Us</h2>
+          <p className="section-subtitle">Simplifying Trade, Empowering Commerce</p>
+          <div className="about-content">
+            <p>The National Single Window (NSW) is a cross-government website that facilitates trade by giving all parties involved in trade and transport access to a single point to lodge standardized information and documents with a single entry point to fulfill all import, export, and transit-related regulatory requirements.</p>
+          </div>
+        </section>
+
+        <section id="services" className="services-section">
+          <h2>Popular eServices</h2>
+          <p className="section-subtitle">Access our most frequently used digital services</p>
+          <div className="services-grid">
+            <div className="service-card">
+              <span className="tag">Importer</span><h3>Importer/Exporter Registration</h3>
+              <p>Sign up as an Importer/Exporter to start using NSW services.</p>
+              <button onClick={() => setActiveModal('register')} className="card-btn">Register &rarr;</button>
             </div>
-          )}
-
-          <form onSubmit={handleSecureLogin} className="space-y-4">
-            <div>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-emerald-700">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </span>
-                <input 
-                  type="email" 
-                  required
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="trader@apex.ng, officer@customs.gov.ng..."
-                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
-              </div>
+            <div className="service-card">
+              <span className="tag">Clearing</span><h3>License Customs/Freight Forwarding</h3>
+              <p>Register as a License Customs/Freight Forwarding Agent to start using NSW services.</p>
+              <button onClick={() => setActiveModal('register')} className="card-btn">Register &rarr;</button>
             </div>
-
-            <div>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-emerald-700">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </span>
-                <input 
-                  type="password" 
-                  required
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder="Password"
-                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
-              </div>
+            <div className="service-card">
+              <span className="tag">Shipping</span><h3>Shipping Lines Registration</h3>
+              <p>Register your Shipping Line to access and utilize NSW services.</p>
+              <button onClick={() => setActiveModal('register')} className="card-btn">Register &rarr;</button>
             </div>
+            <div className="service-card">
+              <span className="tag">Track</span><h3>Track your Application</h3>
+              <p>Check the status of your registration or application.</p>
+              <button onClick={() => setActiveModal('login')} className="card-btn">Track &rarr;</button>
+            </div>
+          </div>
+        </section>
 
-            <button 
-              type="submit"
-              className="w-full bg-emerald-800 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-emerald-900 transition shadow"
-            >
-              Sign In to Portal
-            </button>
-          </form>
-        </div>
-      </div>
+        <section className="stats-section">
+          <h2>Facts and Figures for this Quarter</h2>
+          <p className="section-subtitle">Q1 - 2026 Overview</p>
+          <div className="stats-grid">
+            <div className="stat-card"><h4>Air Ports</h4><p className="stat-number">5</p><p className="stat-desc">International hubs</p></div>
+            <div className="stat-card"><h4>Sea Ports</h4><p className="stat-number">11</p><p className="stat-desc">Active terminals</p></div>
+            <div className="stat-card"><h4>Traders</h4><p className="stat-number">2,847</p><p className="stat-desc">Registered users</p></div>
+            <div className="stat-card"><h4>Manifests</h4><p className="stat-number">45,623</p><p className="stat-desc">This quarter</p></div>
+            <div className="stat-card"><h4>Permits</h4><p className="stat-number">12,156</p><p className="stat-desc">Issued</p></div>
+          </div>
+        </section>
+
+        <section id="news" className="news-section">
+          <h2>Latest News</h2>
+          <p className="section-subtitle">Stay updated with trade announcements and updates</p>
+          <div className="news-grid">
+            <article className="news-card">
+              <span style={{ color: "#00563f", fontWeight: "bold", fontSize: "12px", marginBottom: "10px" }}>06 April 2026</span>
+              <h3>About NSW Platform Capabilities</h3><p>Learn more about how the National Single Window enhances trade efficiency across Nigeria.</p>
+              <a href="#about" className="news-link">Read more &rarr;</a>
+            </article>
+            <article className="news-card">
+              <span style={{ color: "#00563f", fontWeight: "bold", fontSize: "12px", marginBottom: "10px" }}>05 April 2026</span>
+              <h3>NSW to Host Regional Trade Conference</h3><p>Join key government agencies and stakeholders for the largest trade facilitation event.</p>
+              <a href="#about" className="news-link">Read more &rarr;</a>
+            </article>
+            <article className="news-card">
+              <span style={{ color: "#00563f", fontWeight: "bold", fontSize: "12px", marginBottom: "10px" }}>05 April 2026</span>
+              <h3>Trade Facilitation Report Released</h3><p>Download the official comprehensive report evaluating digital trade metrics.</p>
+              <a href="#about" className="news-link">Read more &rarr;</a>
+            </article>
+          </div>
+        </section>
+
+        <footer id="contact">
+          <div className="footer-container">
+            <div className="footer-col">
+              <h3>National Single Window</h3><p>Driving Efficiency and Transparency in Nigeria's Trade Ecosystem.</p>
+            </div>
+            <div className="footer-col">
+              <h4>Quick Links</h4>
+              <ul style={{ listStyle: "none" }}>
+                <li style={{ marginBottom: "8px" }}><a href="#home">Home</a></li>
+                <li style={{ marginBottom: "8px" }}><a href="#about">About Us</a></li>
+                <li style={{ marginBottom: "8px" }}><a href="#services">Services</a></li>
+                <li style={{ marginBottom: "8px" }}><a href="#news">News</a></li>
+                <li><a href="#contact">Contact</a></li>
+              </ul>
+            </div>
+            <div className="footer-col">
+              <h4>Contact Us</h4>
+              <p>26, Sokode Crescent, Wuse Zone 5, Abuja</p>
+              <p>+234 803 999 9352</p><p>nsw@firs.gov.ng</p>
+            </div>
+          </div>
+          <div className="footer-bottom"><p>&copy; 2026 National Single Window. All rights reserved.</p></div>
+        </footer>
+
+        {/* Modal Connections */}
+        {activeModal === 'login' && (
+          <div className="modal" onClick={(e) => e.target.classList.contains('modal') && setActiveModal(null)}>
+            <div className="modal-content">
+              <span className="close-btn" onClick={() => setActiveModal(null)}>&times;</span>
+              <h3>Login to NSW Portal</h3>
+              {loginError && (
+                <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '4px', marginBottom: '15px', fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
+                  {loginError}
+                </div>
+              )}
+              <form onSubmit={handleSecureLogin}>
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555', display: 'block', marginBottom: '5px' }}>Email / Username</label>
+                <input type="text" placeholder="trader@apex.ng, admin..." required value={emailInput} onChange={(e) => setEmailInput(e.target.value)} />
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555', display: 'block', marginBottom: '5px' }}>Password</label>
+                <input type="password" placeholder="Enter password" required value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} />
+                <button type="submit" className="modal-submit">Access Portal</button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {activeModal === 'register' && (
+          <div className="modal" onClick={(e) => e.target.classList.contains('modal') && setActiveModal(null)}>
+            <div className="modal-content">
+              <span className="close-btn" onClick={() => setActiveModal(null)}>&times;</span>
+              <h3>Create an Account</h3>
+              <form onSubmit={handleRegisterSubmit}>
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555', display: 'block', marginBottom: '5px' }}>Full Name</label>
+                <input type="text" placeholder="Enter full name" required />
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555', display: 'block', marginBottom: '5px' }}>Email Address</label>
+                <input type="email" placeholder="Enter email" required />
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555', display: 'block', marginBottom: '5px' }}>Password</label>
+                <input type="password" placeholder="Create password" required />
+                <button type="submit" className="modal-submit">Register</button>
+              </form>
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
+  // ==========================================
+  // 4. RENDER: PORTAL DASHBOARD (Authenticated)
+  // ==========================================
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
       <header className="bg-emerald-900 text-white shadow-md relative z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
-          
           <div className="flex items-center space-x-3">
             <img src="/logo.png" alt="Portal Logo" className="h-10 w-auto object-contain" />
             <div className="hidden sm:block border-l border-emerald-700 pl-3 ml-1">
-              <span className="text-sm font-semibold tracking-wide text-emerald-50">
-                Trade Operations Portal
-              </span>
+              <span className="text-sm font-semibold tracking-wide text-emerald-50">Trade Operations Portal</span>
             </div>
           </div>
 
           <div className="flex items-center space-x-5 text-xs">
             <div className="relative">
-              <button 
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  setUnreadCount(0);
-                }}
-                className="relative text-emerald-200 hover:text-white transition focus:outline-none"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm border border-red-600">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
+              <button onClick={() => { setShowNotifications(!showNotifications); setUnreadCount(0); }} className="relative text-emerald-200 hover:text-white transition focus:outline-none">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                {unreadCount > 0 && <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm border border-red-600">{unreadCount > 9 ? '9+' : unreadCount}</span>}
               </button>
-
               {showNotifications && (
                 <div className="absolute right-0 mt-3 w-72 bg-white rounded-xl shadow-2xl border border-gray-100 text-gray-800 overflow-hidden">
                   <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex justify-between items-center">
                     <h4 className="font-bold text-xs uppercase text-gray-700">Recent Activity</h4>
-                    <button onClick={() => setShowNotifications(false)} className="text-gray-400 hover:text-gray-600 font-bold">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
+                    <button onClick={() => setShowNotifications(false)} className="text-gray-400 hover:text-gray-600 font-bold"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                   </div>
                   <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
                     {auditLogs.slice(0, 8).map(log => (
                       <div key={log.id} className="p-3 hover:bg-gray-50 transition">
-                        <p className="text-[11px] font-medium text-gray-900 leading-tight">
-                          <span className="font-bold text-emerald-700">[{log.role}]</span> {log.action}
-                        </p>
+                        <p className="text-[11px] font-medium text-gray-900 leading-tight"><span className="font-bold text-emerald-700">[{log.role}]</span> {log.action}</p>
                         <span className="text-[9px] text-gray-400 mt-1 block">{log.time}</span>
                       </div>
                     ))}
@@ -380,12 +465,7 @@ export default function SingleWindowPortal() {
               <span className="block text-[10px] uppercase font-semibold text-emerald-300">{session.role} Role</span>
             </div>
             
-            <button 
-              onClick={handleLogout}
-              className="bg-emerald-800 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold border border-emerald-600 transition"
-            >
-              Sign Out
-            </button>
+            <button onClick={handleLogout} className="bg-emerald-800 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold border border-emerald-600 transition">Sign Out</button>
           </div>
         </div>
       </header>
@@ -402,42 +482,33 @@ export default function SingleWindowPortal() {
               <p className="text-xs text-gray-500">Query records or click metric cards to filter status.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-              <input 
-                type="text" 
-                placeholder="Query ID, Product, Company, Status..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none flex-grow sm:flex-grow-0 min-w-[260px]"
-              />
-              {session.role === 'trader' && (
-                <button 
-                  onClick={() => setShowNewAppModal(true)}
-                  className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition shadow whitespace-nowrap"
-                >
-                  + New Application
-                </button>
-              )}
+              <input type="text" placeholder="Query ID, Product, Company, Status..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none flex-grow sm:flex-grow-0 min-w-[260px]" />
+              {session.role === 'trader' && <button onClick={() => setShowNewAppModal(true)} className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition shadow whitespace-nowrap">+ New Application</button>}
             </div>
           </div>
 
-          <DashboardMetrics />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div onClick={() => setSelectedFilter('All')} className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'All' ? 'bg-gray-100 border-gray-800 ring-2 ring-gray-200' : 'bg-white border-gray-200 hover:border-gray-400'}`}>
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Total Applications</span><span className="text-3xl font-extrabold text-black">{applications.length}</span>
+            </div>
+            <div onClick={() => setSelectedFilter('Pending')} className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Pending' ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-100' : 'bg-white border-gray-200 hover:border-amber-300'}`}>
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Pending Review</span><span className="text-3xl font-extrabold text-amber-600">{applications.filter(a => isPending(a.status)).length}</span>
+            </div>
+            <div onClick={() => setSelectedFilter('Approved')} className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Approved' ? 'bg-green-50 border-green-500 ring-2 ring-green-100' : 'bg-white border-gray-200 hover:border-green-300'}`}>
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Approved</span><span className="text-3xl font-extrabold text-green-700">{applications.filter(a => isApproved(a.status)).length}</span>
+            </div>
+            <div onClick={() => setSelectedFilter('Denied')} className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Denied' ? 'bg-red-50 border-red-500 ring-2 ring-red-100' : 'bg-white border-gray-200 hover:border-red-300'}`}>
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Denied / Blocked</span><span className="text-3xl font-extrabold text-red-600">{applications.filter(a => isDenied(a.status)).length}</span>
+            </div>
+          </div>
 
-          {/* Admin Tools */}
           {session.role === 'admin' && (
             <>
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6 border-l-4 border-l-emerald-700">
                 <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">System Broadcast Center</h4>
                 <form onSubmit={handleSendBroadcast} className="flex gap-3">
-                  <input 
-                    type="text" 
-                    value={broadcastMessage}
-                    onChange={(e) => setBroadcastMessage(e.target.value)}
-                    placeholder="Type an operational notice for all active portal users..."
-                    className="flex-grow px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                  />
-                  <button type="submit" className="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm whitespace-nowrap">
-                    Broadcast Notice
-                  </button>
+                  <input type="text" value={broadcastMessage} onChange={(e) => setBroadcastMessage(e.target.value)} placeholder="Type an operational notice for all active portal users..." className="flex-grow px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" />
+                  <button type="submit" className="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm whitespace-nowrap">Broadcast Notice</button>
                 </form>
               </div>
 
@@ -450,32 +521,18 @@ export default function SingleWindowPortal() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-white border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
-                        <th className="py-3 px-4">User / Entity Name</th>
-                        <th className="py-3 px-4">Role Area</th>
-                        <th className="py-3 px-4">Account Status</th>
-                        <th className="py-3 px-4">Access Controls</th>
+                        <th className="py-3 px-4">User / Entity Name</th><th className="py-3 px-4">Role Area</th><th className="py-3 px-4">Account Status</th><th className="py-3 px-4">Access Controls</th>
                       </tr>
                     </thead>
                     <tbody className="text-sm divide-y divide-gray-100 bg-white">
                       {systemUsers.map(user => (
                         <tr key={user.id}>
-                          <td className="py-3 px-4">
-                            <span className="block font-medium text-gray-900">{user.name}</span>
-                            <span className="block text-xs text-gray-500">{user.email}</span>
-                          </td>
+                          <td className="py-3 px-4"><span className="block font-medium text-gray-900">{user.name}</span><span className="block text-xs text-gray-500">{user.email}</span></td>
                           <td className="py-3 px-4 font-mono text-xs">{user.role.toUpperCase()}</td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                              {user.status}
-                            </span>
-                          </td>
+                          <td className="py-3 px-4"><span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{user.status}</span></td>
                           <td className="py-3 px-4 space-x-2">
-                            {user.status !== 'Active' && (
-                              <button onClick={() => handleUserStatusChange(user.id, 'Active')} className="bg-emerald-600 text-white px-2.5 py-1 rounded text-[11px] font-bold hover:bg-emerald-700 transition">Authorize</button>
-                            )}
-                            {user.status !== 'Suspended' && (
-                              <button onClick={() => handleUserStatusChange(user.id, 'Suspended')} className="bg-gray-800 text-white px-2.5 py-1 rounded text-[11px] font-bold hover:bg-gray-900 transition">Suspend</button>
-                            )}
+                            {user.status !== 'Active' && <button onClick={() => handleUserStatusChange(user.id, 'Active')} className="bg-emerald-600 text-white px-2.5 py-1 rounded text-[11px] font-bold hover:bg-emerald-700 transition">Authorize</button>}
+                            {user.status !== 'Suspended' && <button onClick={() => handleUserStatusChange(user.id, 'Suspended')} className="bg-gray-800 text-white px-2.5 py-1 rounded text-[11px] font-bold hover:bg-gray-900 transition">Suspend</button>}
                           </td>
                         </tr>
                       ))}
@@ -486,84 +543,37 @@ export default function SingleWindowPortal() {
             </>
           )}
 
-          {/* Applications Master Table */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[750px]">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
-                    <th className="py-3 px-4">Application ID</th>
-                    <th className="py-3 px-4">Company</th>
-                    <th className="py-3 px-4">Type</th>
-                    <th className="py-3 px-4">Product</th>
+                    <th className="py-3 px-4">Application ID</th><th className="py-3 px-4">Company</th><th className="py-3 px-4">Type</th><th className="py-3 px-4">Product</th>
                     {session.role === 'agency' && <th className="py-3 px-4">Uploaded File</th>}
-                    <th className="py-3 px-4">Current State</th>
-                    <th className="py-3 px-4">Actions & Flow</th>
+                    <th className="py-3 px-4">Current State</th><th className="py-3 px-4">Actions & Flow</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm divide-y divide-gray-100">
                   {displayedApps.length > 0 ? displayedApps.map(app => (
                     <tr key={app.id} className="hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td>
-                      <td className="py-3 px-4">{app.company}</td>
-                      <td className="py-3 px-4">{app.type}</td>
-                      <td className="py-3 px-4 font-medium">{app.product}</td>
+                      <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td><td className="py-3 px-4">{app.company}</td><td className="py-3 px-4">{app.type}</td><td className="py-3 px-4 font-medium">{app.product}</td>
                       {session.role === 'agency' && (
                         <td className="py-3 px-4">
-                          {app.attachedDocument ? (
-                            <button 
-                              onClick={() => setDocPreview(app.attachedDocument)} 
-                              className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded text-xs font-bold hover:bg-emerald-100 transition shadow-sm"
-                            >
-                              View Doc
-                            </button>
-                          ) : (
-                            <span className="text-gray-400 text-xs italic">No Attachment</span>
-                          )}
+                          {app.attachedDocument ? <button onClick={() => setDocPreview(app.attachedDocument)} className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded text-xs font-bold hover:bg-emerald-100 transition shadow-sm">View Doc</button> : <span className="text-gray-400 text-xs italic">No Attachment</span>}
                         </td>
                       )}
                       <td className="py-3 px-4">
-                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider
-                          ${isApproved(app.status) ? 'bg-green-100 text-green-800' : ''}
-                          ${isDenied(app.status) ? 'bg-red-100 text-red-800' : ''}
-                          ${isPending(app.status) ? 'bg-amber-100 text-amber-800' : ''}
-                        `}>
-                          {app.status}
-                        </span>
+                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${isApproved(app.status) ? 'bg-green-100 text-green-800' : ''} ${isDenied(app.status) ? 'bg-red-100 text-red-800' : ''} ${isPending(app.status) ? 'bg-amber-100 text-amber-800' : ''}`}>{app.status}</span>
                       </td>
                       <td className="py-3 px-4 space-x-2 whitespace-nowrap">
-                        {isApproved(app.status) && (
-                          <button 
-                            onClick={() => {
-                              setTrackedApp(app);
-                              setShowPermit(true);
-                            }}
-                            className="bg-emerald-800 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-emerald-900 transition shadow-sm"
-                          >
-                            View Permit
-                          </button>
-                        )}
-                        <button 
-                          onClick={() => setTrackedApp(app)}
-                          className="bg-emerald-700 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-emerald-800 transition shadow-sm"
-                        >
-                          Audit Flow
-                        </button>
+                        {isApproved(app.status) && <button onClick={() => { setTrackedApp(app); setShowPermit(true); }} className="bg-emerald-800 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-emerald-900 transition shadow-sm">View Permit</button>}
+                        <button onClick={() => setTrackedApp(app)} className="bg-emerald-700 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-emerald-800 transition shadow-sm">Audit Flow</button>
                         {session.role === 'agency' && isPending(app.status) && (
-                          <>
-                            <button onClick={() => handleAgencyAction(app.id, 'Approved')} className="bg-green-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-green-700 transition shadow-sm">Approve</button>
-                            <button onClick={() => handleAgencyAction(app.id, 'Denied')} className="bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-red-700 transition shadow-sm">Deny</button>
-                          </>
+                          <><button onClick={() => handleAgencyAction(app.id, 'Approved')} className="bg-green-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-green-700 transition shadow-sm">Approve</button><button onClick={() => handleAgencyAction(app.id, 'Denied')} className="bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-red-700 transition shadow-sm">Deny</button></>
                         )}
                       </td>
                     </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan="7" className="py-8 text-center text-gray-400 text-sm">
-                        No results match your query criteria.
-                      </td>
-                    </tr>
-                  )}
+                  )) : <tr><td colSpan="7" className="py-8 text-center text-gray-400 text-sm">No results match your query criteria.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -571,69 +581,27 @@ export default function SingleWindowPortal() {
         </div>
       </main>
 
-      {/* New Application Modal */}
+      {/* Modals from Source 3 (New App, Audit, Permit, Preview) */}
       {showNewAppModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Submit New Trade Application</h3>
-              <button onClick={() => setShowNewAppModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
+              <button onClick={() => setShowNewAppModal(false)} className="text-gray-400 hover:text-gray-600 font-bold"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
             <form onSubmit={handleFormSubmitApplication} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Permit / License Type</label>
-                <select 
-                  value={newAppType} 
-                  onChange={(e) => setNewAppType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-white"
-                >
-                  <option value="Import Permit">Import Permit</option>
-                  <option value="Export License">Export License</option>
-                  <option value="Transit Goods Clearance">Transit Goods Clearance</option>
+                <select value={newAppType} onChange={(e) => setNewAppType(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-white">
+                  <option value="Import Permit">Import Permit</option><option value="Export License">Export License</option><option value="Transit Goods Clearance">Transit Goods Clearance</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Company Name</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g. Apex Logistics Ltd"
-                  value={newAppCompany}
-                  onChange={(e) => setNewAppCompany(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Product Description</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g. Industrial Solar Panels"
-                  value={newAppProduct}
-                  onChange={(e) => setNewAppProduct(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity / Volume</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g. 500 Units"
-                  value={newAppQuantity}
-                  onChange={(e) => setNewAppQuantity(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
-              </div>
+              <div><label className="block text-xs font-bold text-gray-700 uppercase mb-1">Company Name</label><input type="text" required placeholder="e.g. Apex Logistics Ltd" value={newAppCompany} onChange={(e) => setNewAppCompany(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" /></div>
+              <div><label className="block text-xs font-bold text-gray-700 uppercase mb-1">Product Description</label><input type="text" required placeholder="e.g. Industrial Solar Panels" value={newAppProduct} onChange={(e) => setNewAppProduct(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" /></div>
+              <div><label className="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity / Volume</label><input type="text" required placeholder="e.g. 500 Units" value={newAppQuantity} onChange={(e) => setNewAppQuantity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" /></div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Attach Supporting Document (Max 5MB)</label>
-                <input 
-                  type="file" 
-                  onChange={handleFileChange}
-                  className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                />
+                <input type="file" onChange={handleFileChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
                 {fileError && <p className="text-xs text-red-600 mt-1 font-bold">{fileError}</p>}
               </div>
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
@@ -645,109 +613,33 @@ export default function SingleWindowPortal() {
         </div>
       )}
 
-      {/* Transaction Flow Status Modal (All emojis replaced with clean SVG indicators) */}
       {trackedApp && !showPermit && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-md w-full shadow-2xl overflow-hidden">
             <div className="bg-[#1e4638] text-white p-6 relative">
-              <button onClick={() => setTrackedApp(null)} className="absolute top-4 right-4 text-white hover:text-gray-300 font-bold">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 mb-1">Transaction Audit Flow</p>
-              <h2 className="text-2xl font-black tracking-tight">{trackedApp.id}</h2>
-              <p className="text-sm text-emerald-100">{trackedApp.product}</p>
+              <button onClick={() => setTrackedApp(null)} className="absolute top-4 right-4 text-white hover:text-gray-300 font-bold"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 mb-1">Transaction Audit Flow</p><h2 className="text-2xl font-black tracking-tight">{trackedApp.id}</h2><p className="text-sm text-emerald-100">{trackedApp.product}</p>
             </div>
-            
             <div className="p-6 bg-gray-50">
               <div className="relative pl-6 border-l-2 border-emerald-600 space-y-6">
-                
-                {/* Step 1: Submission */}
-                <div className="relative">
-                  <div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
-                  </div>
-                  <h4 className="font-bold text-gray-900 text-sm">Application Submitted</h4>
-                  <p className="text-xs text-gray-500">Documentation uploaded by {trackedApp.company}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{trackedApp.submittedAt}</p>
-                </div>
-                
-                {/* Step 2: Automated Gateway Validation */}
-                <div className="relative">
-                  <div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
-                  </div>
-                  <h4 className="font-bold text-gray-900 text-sm">Automated Compliance Gateway</h4>
-                  <p className="text-xs text-gray-500">Product parameters and trade regulation checks passed</p>
-                </div>
-                
-                {/* Step 3: Regulatory Review */}
-                <div className="relative">
-                  <div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center shadow-sm ${isPending(trackedApp.status) ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'}`}>
-                    {isPending(trackedApp.status) ? (
-                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 12a8 8 0 018-8v8H4z"/></svg>
-                    ) : (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
-                    )}
-                  </div>
-                  <h4 className="font-bold text-gray-900 text-sm">Customs and Regulatory Review</h4>
-                  <p className="text-xs text-gray-500">
-                    {isPending(trackedApp.status) ? 'Document verification in progress' : 'Document verification completed'}
-                  </p>
-                </div>
-                
-                {/* Step 4: Final Decision */}
-                <div className="relative">
-                  <div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center shadow-sm ${isApproved(trackedApp.status) ? 'bg-emerald-600 text-white' : isDenied(trackedApp.status) ? 'bg-red-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
-                    {isApproved(trackedApp.status) ? (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
-                    ) : isDenied(trackedApp.status) ? (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg>
-                    ) : (
-                      <span className="text-[10px] font-bold">...</span>
-                    )}
-                  </div>
-                  <h4 className="font-bold text-gray-900 text-sm">Final Decision</h4>
-                  <p className="text-xs text-gray-500">
-                    {isApproved(trackedApp.status) 
-                      ? 'Digital Permit released successfully' 
-                      : isDenied(trackedApp.status) 
-                      ? 'Application blocked/denied by system' 
-                      : 'Awaiting final decision'}
-                  </p>
-                </div>
-
+                <div className="relative"><div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg></div><h4 className="font-bold text-gray-900 text-sm">Application Submitted</h4><p className="text-xs text-gray-500">Documentation uploaded by {trackedApp.company}</p><p className="text-xs text-gray-400 mt-0.5">{trackedApp.submittedAt}</p></div>
+                <div className="relative"><div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg></div><h4 className="font-bold text-gray-900 text-sm">Automated Compliance Gateway</h4><p className="text-xs text-gray-500">Product parameters and trade regulation checks passed</p></div>
+                <div className="relative"><div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center shadow-sm ${isPending(trackedApp.status) ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'}`}>{isPending(trackedApp.status) ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 12a8 8 0 018-8v8H4z"/></svg> : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>}</div><h4 className="font-bold text-gray-900 text-sm">Customs and Regulatory Review</h4><p className="text-xs text-gray-500">{isPending(trackedApp.status) ? 'Document verification in progress' : 'Document verification completed'}</p></div>
+                <div className="relative"><div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center shadow-sm ${isApproved(trackedApp.status) ? 'bg-emerald-600 text-white' : isDenied(trackedApp.status) ? 'bg-red-600 text-white' : 'bg-gray-300 text-gray-500'}`}>{isApproved(trackedApp.status) ? <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg> : isDenied(trackedApp.status) ? <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg> : <span className="text-[10px] font-bold">...</span>}</div><h4 className="font-bold text-gray-900 text-sm">Final Decision</h4><p className="text-xs text-gray-500">{isApproved(trackedApp.status) ? 'Digital Permit released successfully' : isDenied(trackedApp.status) ? 'Application blocked/denied by system' : 'Awaiting final decision'}</p></div>
               </div>
-
-              <div className="mt-6 text-center">
-                <button onClick={() => setTrackedApp(null)} className="text-xs text-gray-500 hover:text-gray-700 font-bold transition">
-                  Close Window
-                </button>
-              </div>
+              <div className="mt-6 text-center"><button onClick={() => setTrackedApp(null)} className="text-xs text-gray-500 hover:text-gray-700 font-bold transition">Close Window</button></div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Official E-Permit Document Modal */}
       {showPermit && trackedApp && (
         <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full p-8 shadow-2xl relative min-h-[500px]">
-            <button 
-              onClick={() => {
-                setShowPermit(false);
-                setTrackedApp(null);
-              }} 
-              className="absolute top-4 right-4 text-gray-400 hover:text-black font-bold text-lg"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+            <button onClick={() => { setShowPermit(false); setTrackedApp(null); }} className="absolute top-4 right-4 text-gray-400 hover:text-black font-bold text-lg"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
             <div className="border-4 border-double border-emerald-800 p-8 h-full flex flex-col items-center text-center relative bg-slate-50/30">
               <img src="/logo.png" alt="Logo" className="h-20 mb-4 opacity-10 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 object-contain pointer-events-none" />
-              
-              <h1 className="text-2xl font-black text-emerald-900 uppercase tracking-widest border-b-2 border-emerald-800 pb-2 mb-8 relative z-10">
-                Official Trade Permit
-              </h1>
-
+              <h1 className="text-2xl font-black text-emerald-900 uppercase tracking-widest border-b-2 border-emerald-800 pb-2 mb-8 relative z-10">Official Trade Permit</h1>
               <div className="w-full text-left space-y-4 relative z-10 text-sm">
                 <p><strong className="text-gray-700 w-40 inline-block">Permit No:</strong> <span className="font-mono font-bold">{trackedApp.id}-PERMIT</span></p>
                 <p><strong className="text-gray-700 w-40 inline-block">Issued To:</strong> {trackedApp.company}</p>
@@ -756,53 +648,26 @@ export default function SingleWindowPortal() {
                 <p><strong className="text-gray-700 w-40 inline-block">Issue Date:</strong> {trackedApp.submittedAt || new Date().toISOString().split('T')[0]}</p>
                 <p><strong className="text-gray-700 w-40 inline-block">Status:</strong> <span className="text-green-700 font-bold uppercase">VALID & AUTHORIZED</span></p>
               </div>
-
               <div className="mt-16 w-full pt-8 flex justify-between items-end relative z-10">
-                <div className="text-center">
-                  <div className="border-b border-black w-40 mb-2"></div>
-                  <p className="text-[10px] font-bold uppercase text-gray-600">Authorized Signature</p>
-                </div>
-
-                <div className="w-28 h-28 border-4 border-double border-red-800 rounded-full flex flex-col items-center justify-center p-1 text-center bg-red-50/10 transform -rotate-12 opacity-90 select-none pointer-events-none">
-                  <div className="w-full h-full border border-dashed border-red-700 rounded-full flex flex-col items-center justify-center p-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-red-900 leading-tight">
-                      Official Seal
-                    </span>
-                    <span className="text-[7px] font-bold uppercase tracking-tight text-red-800 mt-0.5">
-                      Validated & Approved
-                    </span>
-                  </div>
-                </div>
+                <div className="text-center"><div className="border-b border-black w-40 mb-2"></div><p className="text-[10px] font-bold uppercase text-gray-600">Authorized Signature</p></div>
+                <div className="w-28 h-28 border-4 border-double border-red-800 rounded-full flex flex-col items-center justify-center p-1 text-center bg-red-50/10 transform -rotate-12 opacity-90 pointer-events-none"><div className="w-full h-full border border-dashed border-red-700 rounded-full flex flex-col items-center justify-center p-1"><span className="text-[9px] font-black uppercase tracking-widest text-red-900 leading-tight">Official Seal</span><span className="text-[7px] font-bold uppercase tracking-tight text-red-800 mt-0.5">Validated & Approved</span></div></div>
               </div>
-
             </div>
           </div>
         </div>
       )}
 
-      {/* Document Preview Modal */}
       {docPreview && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
               <h3 className="font-bold text-gray-900 text-sm">Attached Document Preview</h3>
-              <button onClick={() => setDocPreview(null)} className="text-gray-400 hover:text-gray-600 font-bold">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
+              <button onClick={() => setDocPreview(null)} className="text-gray-400 hover:text-gray-600 font-bold"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
             <div className="max-h-96 overflow-auto border border-gray-200 rounded-lg p-2 bg-gray-50 flex justify-center">
-              {docPreview.startsWith('data:image') ? (
-                <img src={docPreview} alt="Attached Document" className="max-w-full h-auto object-contain" />
-              ) : (
-                <div className="py-12 text-center text-gray-600 text-xs">
-                  <p className="font-bold mb-2">Document Data Loaded Successfully</p>
-                  <a href={docPreview} download="attached-document" className="text-emerald-700 underline font-bold">Download File</a>
-                </div>
-              )}
+              {docPreview.startsWith('data:image') ? <img src={docPreview} alt="Attached Document" className="max-w-full h-auto object-contain" /> : <div className="py-12 text-center text-gray-600 text-xs"><p className="font-bold mb-2">Document Data Loaded Successfully</p><a href={docPreview} download="attached-document" className="text-emerald-700 underline font-bold">Download File</a></div>}
             </div>
-            <button onClick={() => setDocPreview(null)} className="w-full mt-4 bg-gray-800 text-white py-2 rounded-lg text-xs font-bold hover:bg-gray-900">
-              Close Preview
-            </button>
+            <button onClick={() => setDocPreview(null)} className="w-full mt-4 bg-gray-800 text-white py-2 rounded-lg text-xs font-bold hover:bg-gray-900">Close Preview</button>
           </div>
         </div>
       )}

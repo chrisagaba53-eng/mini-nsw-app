@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>National Single Window</title>
+    
+    <style>
+        /* Smooth Scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        /* Header & Navigation */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #ffffff;
+            padding: 15px 5%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-container img {
+            height: 50px;
+            width: 50px;
+            background-color: #ddd;
+        }
+
+        .logo-container h1 {
+            font-size: 22px;
+            color: #00563f;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 25px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 600;
+        }
+
+        nav a:hover {
+            color: #00563f;
+        }
+
+        .auth-buttons button {
+            padding: 10px 20px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .auth-buttons button:first-of-type {
+            background-color: transparent;
+            color: #00563f;
+            border: 1px solid #00563f;
+        }
+
+        .auth-buttons button:last-of-type {
+            background-color: #00563f;
+            color: #ffffff;
+        }
+
+        .menu-toggle {
+            display: none;
+            font-size: 28px;
+            background: none;
+            border: none;
+            color: #00563f;
+            cursor: pointer;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            text-align: center;
+            padding: 80px 20px;
+            background-color: #e8f5e9;
+        }
+
+        .hero-section h2 {
+            font-size: 40px;
+            color: #00563f;
+            margin-bottom: 15px;
+        }
+
+        .hero-section p {
+            font-size: 18px;
+            margin-bottom: 25px;
+            color: #555;
+        }
+
+        .hero-actions button {
+            padding: 12px 24px;
+            margin: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .hero-actions button:first-child {
+            background-color: #00563f;
+            color: white;
+        }
+
+        .hero-actions button:last-child {
+            background-color: white;
+            color: #00563f;
+            border: 1px solid #00563f;
+        }
+
+        .statistics-row {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 60px;
+        }
+
+        .stat-box {
+            background-color: white;
+            padding: 25px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            min-width: 200px;
+        }
+
+        .stat-box h3 {
+            font-size: 32px;
+            color: #00563f;
+            margin-bottom: 5px;
+        }
+
+        /* About Us Section */
+        .about-section {
+            padding: 60px 5%;
+            background-color: #ffffff;
+            text-align: center;
+        }
+
+        .about-content {
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+            color: #555;
+            font-size: 16px;
+        }
+
+        /* Content Sections (eServices, Stats, News) */
+        .services-section, .stats-section, .news-section {
+            padding: 60px 5%;
+            background-color: #f8f9fa;
+            text-align: center;
+        }
+
+        .stats-section {
+            background-color: #f0f4f1;
+        }
+
+        h2 {
+            font-size: 32px;
+            color: #00563f;
+            margin-bottom: 5px;
+        }
+
+        .section-subtitle {
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        /* Grids */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            text-align: left;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+            text-align: left;
+        }
+
+        /* Cards */
+        .service-card, .stat-card, .news-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 25px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .stat-card {
+            border-left: 4px solid #00563f;
+            padding: 20px;
+        }
+
+        .service-card h3, .news-card h3 {
+            font-size: 18px;
+            color: #222;
+            margin-bottom: 10px;
+        }
+
+        .service-card p, .news-card p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .service-card .tag {
+            display: inline-block;
+            background-color: #e8f5e9;
+            color: #00563f;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            width: fit-content;
+            margin-bottom: 15px;
+        }
+
+        .card-btn, .news-link {
+            text-decoration: none;
+            color: #00563f;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .stat-card .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #00563f;
+            margin: 10px 0 5px 0;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #1a2521;
+            color: #e0e0e0;
+            padding-top: 50px;
+        }
+
+        .footer-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 30px;
+            padding: 0 5% 40px 5%;
+        }
+
+        .footer-col {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .footer-col h3, .footer-col h4 {
+            color: #ffffff;
+            margin-bottom: 15px;
+        }
+
+        .footer-col a {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #2d3a35;
+            text-align: center;
+            padding: 20px;
+            font-size: 13px;
+        }
+
+        /* Modal Styles for Functional Login & Register Popups */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal h3 {
+            color: #00563f;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .modal-submit {
+            width: 100%;
+            padding: 10px;
+            background-color: #00563f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* MOBILE RESPONSIVENESS OVERRIDES */
+        @media screen and (max-width: 768px) {
+            header {
+                flex-wrap: wrap;
+                padding: 15px 20px;
+            }
+
+            .logo-container h1 { font-size: 18px; }
+            .menu-toggle { display: block; }
+            
+            nav {
+                display: none;
+                width: 100%;
+                order: 3;
+                margin-top: 15px;
+                background-color: #ffffff;
+                padding: 15px 0;
+                border-top: 1px solid #e0e0e0;
+            }
+            
+            nav.active { display: block; }
+            nav ul { flex-direction: column; align-items: center; gap: 15px; }
+            nav a { display: block; padding: 5px 0; }
+            
+            .auth-buttons { display: flex; gap: 10px; }
+            .auth-buttons button { margin-left: 0; padding: 8px 14px; }
+
+            .hero-section { padding: 40px 15px; }
+            .hero-section h2 { font-size: 24px; }
+            .hero-actions { display: flex; flex-direction: column; gap: 10px; }
+            .hero-actions button { margin: 0; width: 100%; }
+
+            .statistics-row { flex-direction: column; align-items: center; gap: 15px; }
+            .stat-box { width: 100%; min-width: unset; }
+
+            .services-grid, .stats-grid, .news-grid { grid-template-columns: 1fr; }
+
+            .footer-container { flex-direction: column; text-align: center; gap: 30px; }
+            .footer-col { min-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="logo-container" style="text-decoration: none;">
+    <img src="images/coat-of-arms.jpg" alt="Nigeria Coat of Arms">
+    <h1>National Single Window</h1>
+</a>
+        <button class="menu-toggle" id="mobile-menu" aria-label="Toggle Navigation">&#9776;</button>
+        <nav id="nav-menu">
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">About Us</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#news">News</a></li>
+                <li><a href="#contact">Contact Us</a></li>
+            </ul>
+        </nav>
+        <div class="auth-buttons">
+            <button onclick="openModal('registerModal')">Register</button>
+            <button onclick="openModal('loginModal')">Login</button>
+        </div>
+    </header>
+
+    <section id="home" class="hero-section">
+        <h2>Christopher's Premier Trade Platform</h2>
+        <p>Digital Trade Gateway</p>
+        <p>Connecting Nigeria's trade ecosystem through innovative digital solutions</p>
+        <div class="hero-actions">
+            <button onclick="openModal('registerModal')">Get Started</button>
+            <button onclick="location.href='#services'">Explore Features</button>
+        </div>
+        <div class="statistics-row">
+            <div class="stat-box">
+                <h3>9185</h3><p>Active Users</p>
+            </div>
+            <div class="stat-box">
+                <h3>24/7</h3><p>Support</p>
+            </div>
+            <div class="stat-box">
+                <h3>99.5%</h3><p>Uptime</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="about-section">
+        <h2>About Us</h2>
+        <p class="section-subtitle">Simplifying Trade, Empowering Commerce</p>
+        <div class="about-content">
+            <p>The National Single Window (NSW) is a cross-government website that facilitates trade by giving all parties involved in trade and transport access to a single point to lodge standardized information and documents with a single entry point to fulfill all import, export, and transit-related regulatory requirements.</p>
+        </div>
+    </section>
+
+    <section id="services" class="services-section">
+        <h2>Popular eServices</h2>
+        <p class="section-subtitle">Access our most frequently used digital services</p>
+        <div class="services-grid">
+            <div class="service-card">
+                <span class="tag">Importer</span>
+                <h3>Importer/Exporter Registration</h3>
+                <p>Sign up as an Importer/Exporter to start using NSW services.</p>
+                <a href="javascript:void(0)" onclick="openModal('registerModal')" class="card-btn">Register &rarr;</a>
+            </div>
+            <div class="service-card">
+                <span class="tag">Clearing</span>
+                <h3>License Customs/Freight Forwarding</h3>
+                <p>Register as a License Customs/Freight Forwarding Agent to start using NSW services.</p>
+                <a href="javascript:void(0)" onclick="openModal('registerModal')" class="card-btn">Register &rarr;</a>
+            </div>
+            <div class="service-card">
+                <span class="tag">Shipping</span>
+                <h3>Shipping Lines Registration</h3>
+                <p>Register your Shipping Line to access and utilize NSW services.</p>
+                <a href="javascript:void(0)" onclick="openModal('registerModal')" class="card-btn">Register &rarr;</a>
+            </div>
+            <div class="service-card">
+                <span class="tag">Track</span>
+                <h3>Track your Application</h3>
+                <p>Check the status of your registration or application.</p>
+                <a href="javascript:void(0)" onclick="openModal('loginModal')" class="card-btn">Track &rarr;</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <h2>Facts and Figures for this Quarter</h2>
+        <p class="section-subtitle">Q1 - 2026 Overview</p>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h4>Air Ports</h4><p class="stat-number">5</p><p class="stat-desc">International hubs</p>
+            </div>
+            <div class="stat-card">
+                <h4>Sea Ports</h4><p class="stat-number">11</p><p class="stat-desc">Active terminals</p>
+            </div>
+            <div class="stat-card">
+                <h4>Traders</h4><p class="stat-number">2,847</p><p class="stat-desc">Registered users</p>
+            </div>
+            <div class="stat-card">
+                <h4>Manifests</h4><p class="stat-number">45,623</p><p class="stat-desc">This quarter</p>
+            </div>
+            <div class="stat-card">
+                <h4>Permits</h4><p class="stat-number">12,156</p><p class="stat-desc">Issued</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="news" class="news-section">
+        <h2>Latest News</h2>
+        <p class="section-subtitle">Stay updated with trade announcements and updates</p>
+        <div class="news-grid">
+            <article class="news-card">
+                <span class="news-date" style="color:#00563f;font-weight:bold;font-size:12px;margin-bottom:10px;">06 April 2026</span>
+                <h3>About NSW Platform Capabilities</h3>
+                <p>Learn more about how the National Single Window enhances trade efficiency across Nigeria.</p>
+                <a href="#about" class="news-link">Read more &rarr;</a>
+            </article>
+            <article class="news-card">
+                <span class="news-date" style="color:#00563f;font-weight:bold;font-size:12px;margin-bottom:10px;">05 April 2026</span>
+                <h3>NSW to Host Regional Trade Conference</h3>
+                <p>Join key government agencies and stakeholders for the largest trade facilitation event.</p>
+                <a href="#about" class="news-link">Read more &rarr;</a>
+            </article>
+            <article class="news-card">
+                <span class="news-date" style="color:#00563f;font-weight:bold;font-size:12px;margin-bottom:10px;">05 April 2026</span>
+                <h3>Trade Facilitation Report Released</h3>
+                <p>Download the official comprehensive report evaluating digital trade metrics.</p>
+                <a href="#about" class="news-link">Read more &rarr;</a>
+            </article>
+        </div>
+    </section>
+
+    <footer id="contact">
+        <div class="footer-container">
+            <div class="footer-col">
+                <h3>National Single Window</h3>
+                <p>Driving Efficiency and Transparency in Nigeria's Trade Ecosystem.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Quick Links</h4>
+                <ul style="list-style:none;">
+                    <li style="margin-bottom:8px;"><a href="#home">Home</a></li>
+                    <li style="margin-bottom:8px;"><a href="#about">About Us</a></li>
+                    <li style="margin-bottom:8px;"><a href="#services">Services</a></li>
+                    <li style="margin-bottom:8px;"><a href="#news">News</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Contact Us</h4>
+                <p>26, Sokode Crescent, Wuse Zone 5, Abuja</p>
+                <p>+234 803 999 9352</p>
+                <p>nsw@firs.gov.ng</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 National Single Window. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Functional Login Modal Popup -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('loginModal')">&times;</span>
+            <h3>Login to NSW</h3>
+            <form onsubmit="alert('Login submission successful!'); closeModal('loginModal'); return false;">
+                <label>Email / Username</label>
+                <input type="text" placeholder="Enter your email" required>
+                <label>Password</label>
+                <input type="password" placeholder="Enter your password" required>
+                <button type="submit" class="modal-submit">Log In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Functional Register Modal Popup -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('registerModal')">&times;</span>
+            <h3>Create an Account</h3>
+            <form onsubmit="alert('Registration submission successful!'); closeModal('registerModal'); return false;">
+                <label>Full Name</label>
+                <input type="text" placeholder="Enter full name" required>
+                <label>Email Address</label>
+                <input type="email" placeholder="Enter email" required>
+                <label>Password</label>
+                <input type="password" placeholder="Create password" required>
+                <button type="submit" class="modal-submit">Register</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Mobile Navigation Toggle
+        document.getElementById('mobile-menu').addEventListener('click', function() {
+            document.getElementById('nav-menu').classList.toggle('active');
+        });
+		
+        // Close Mobile Menu on Nav Click
+        document.querySelectorAll('nav a').forEach(function(link) {
+            link.addEventListener('click', function() {
+                document.getElementById('nav-menu').classList.remove('active');
+            });
+        });
+
+        // Modal Form Controllers
+        function openModal(id) {
+            document.getElementById(id).style.display = 'flex';
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        // Close Modal when clicking outside the box
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        };
+    </script>
+
+</body>
+</html>
