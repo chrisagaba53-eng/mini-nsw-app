@@ -220,12 +220,21 @@ export default function UnifiedNationalSingleWindow() {
           .footer-col h3, .footer-col h4 { color: #ffffff; margin-bottom: 15px; }
           .footer-col a { color: #ccc; text-decoration: none; font-size: 14px; }
           .footer-bottom { border-top: 1px solid #2d3a35; text-align: center; padding: 20px; font-size: 13px; }
-          .modal { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
-          .modal-content { background-color: #ffffff; padding: 30px; border-radius: 8px; width: 90%; max-width: 400px; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-          .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #666; }
-          .modal h3 { color: #00563f; margin-bottom: 20px; text-align: center; }
-          .modal input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; }
-          .modal-submit { width: 100%; padding: 10px; background-color: #00563f; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+          .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #666; }
+          
+          /* Shared Full-Screen Modal Overlay & Card Styles */
+          .login-modal-overlay { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #013624; z-index: 2000; justify-content: center; align-items: center; }
+          .login-card { background-color: #ffffff; padding: 40px; border-radius: 12px; width: 90%; max-width: 450px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+          .login-header { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 25px; }
+          .login-header img, .login-header svg { height: 45px; width: auto; object-fit: contain; }
+          .login-header-text { display: flex; flex-direction: column; color: #4b5563; font-size: 16px; line-height: 1.2; text-align: left; font-weight: 600; }
+          .input-group { position: relative; margin-bottom: 20px; }
+          .input-group svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #00563f; width: 18px; height: 18px; }
+          .input-group input { width: 100%; padding: 14px 14px 14px 45px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; transition: border-color 0.2s; box-sizing: border-box; }
+          .input-group input:focus { border-color: #00563f; box-shadow: 0 0 0 2px rgba(0,86,63,0.1); }
+          .login-submit-btn { width: 100%; padding: 14px; background-color: #00563f; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 15px; cursor: pointer; transition: background-color 0.2s; }
+          .login-submit-btn:hover { background-color: #004230; }
+
           @media screen and (max-width: 768px) {
               header { flex-wrap: wrap; padding: 15px 20px; }
               .logo-container h1 { font-size: 18px; }
@@ -379,41 +388,107 @@ export default function UnifiedNationalSingleWindow() {
           <div className="footer-bottom"><p>&copy; 2026 National Single Window. All rights reserved.</p></div>
         </footer>
 
-        {/* Modal Connections */}
+        {/* Full-Screen Login Modal */}
         {activeModal === 'login' && (
-          <div className="modal" onClick={(e) => e.target.classList.contains('modal') && setActiveModal(null)}>
-            <div className="modal-content">
+          <div className="login-modal-overlay" onClick={(e) => e.target.classList.contains('login-modal-overlay') && setActiveModal(null)}>
+            <div className="login-card">
               <span className="close-btn" onClick={() => setActiveModal(null)}>&times;</span>
-              <h3>Login to NSW Portal</h3>
+              
+              <div className="login-header">
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <img src="/logo.png" alt="Nigeria Coat of Arms" />
+                  <svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="#00563f" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                  </svg>
+                </div>
+                <div className="login-header-text">
+                  <span>National</span>
+                  <span>Single Window</span>
+                </div>
+              </div>
+
               {loginError && (
                 <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '4px', marginBottom: '15px', fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
                   {loginError}
                 </div>
               )}
+
               <form onSubmit={handleSecureLogin}>
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555', display: 'block', marginBottom: '5px' }}>Email / Username</label>
-                <input type="text" placeholder="trader@apex.ng, admin..." required value={emailInput} onChange={(e) => setEmailInput(e.target.value)} />
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555', display: 'block', marginBottom: '5px' }}>Password</label>
-                <input type="password" placeholder="Enter password" required value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} />
-                <button type="submit" className="modal-submit">Access Portal</button>
+                <div className="input-group">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                  <input type="text" placeholder="trader@apex.ng, admin..." required value={emailInput} onChange={(e) => setEmailInput(e.target.value)} />
+                </div>
+                
+                <div className="input-group">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  <input type="password" placeholder="Password" required value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} />
+                </div>
+
+                <button type="submit" className="login-submit-btn">Access Portal</button>
               </form>
             </div>
           </div>
         )}
 
+        {/* Full-Screen Register & Get Started Modal */}
         {activeModal === 'register' && (
-          <div className="modal" onClick={(e) => e.target.classList.contains('modal') && setActiveModal(null)}>
-            <div className="modal-content">
+          <div className="login-modal-overlay" onClick={(e) => e.target.classList.contains('login-modal-overlay') && setActiveModal(null)}>
+            <div className="login-card">
               <span className="close-btn" onClick={() => setActiveModal(null)}>&times;</span>
-              <h3>Create an Account</h3>
+              
+              <div className="login-header">
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <img src="/logo.png" alt="Nigeria Coat of Arms" />
+                  <svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="#00563f" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                  </svg>
+                </div>
+                <div className="login-header-text">
+                  <span>National</span>
+                  <span>Single Window</span>
+                </div>
+              </div>
+
+              <h3 style={{ textTransform: 'uppercase', fontSize: '13px', letterSpacing: '0.05em', color: '#00563f', textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>
+                Create Portal Account
+              </h3>
+
               <form onSubmit={handleRegisterSubmit}>
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555', display: 'block', marginBottom: '5px' }}>Full Name</label>
-                <input type="text" placeholder="Enter full name" required />
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555', display: 'block', marginBottom: '5px' }}>Email Address</label>
-                <input type="email" placeholder="Enter email" required />
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555', display: 'block', marginBottom: '5px' }}>Password</label>
-                <input type="password" placeholder="Create password" required />
-                <button type="submit" className="modal-submit">Register</button>
+                <div className="input-group">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <input type="text" placeholder="Full Name" required />
+                </div>
+
+                <div className="input-group">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                  <input type="email" placeholder="Email Address" required />
+                </div>
+                
+                <div className="input-group">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  <input type="password" placeholder="Create Password" required />
+                </div>
+
+                <button type="submit" className="login-submit-btn">Complete Registration</button>
               </form>
             </div>
           </div>
@@ -581,7 +656,7 @@ export default function UnifiedNationalSingleWindow() {
         </div>
       </main>
 
-      {/* Modals from Source 3 (New App, Audit, Permit, Preview) */}
+      {/* Internal Portal Modals */}
       {showNewAppModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
