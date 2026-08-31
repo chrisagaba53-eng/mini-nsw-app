@@ -8,17 +8,13 @@ export default function UnifiedNationalSingleWindow() {
   // 1. STATE MANAGEMENT (PORTAL & LANDING)
   // ==========================================
   
-  // Landing Page States
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
-
-  // Authentication States
   const [session, setSession] = useState(null);
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // Portal Data States
   const [systemUsers, setSystemUsers] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedUsers = localStorage.getItem('nsw_system_users');
@@ -39,7 +35,6 @@ export default function UnifiedNationalSingleWindow() {
   ]);
 
   const [selectedFilter, setSelectedFilter] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(1);
   const [auditLogs, setAuditLogs] = useState([
@@ -133,12 +128,6 @@ export default function UnifiedNationalSingleWindow() {
     setNewAppCompany(''); setNewAppProduct(''); setNewAppQuantity(''); setNewAppFile(null);
   };
 
-  const handleAgencyAction = (appId, newStatus) => {
-    setApplications(applications.map(app => app.id === appId ? { ...app, status: newStatus } : app));
-    if (trackedApp && trackedApp.id === appId) setTrackedApp({ ...trackedApp, status: newStatus });
-    addLog('Agency', `Updated ${appId} to ${newStatus}`);
-  };
-
   const handleUserStatusChange = (userId, newStatus) => {
     const updated = systemUsers.map(u => u.id === userId ? { ...u, status: newStatus } : u);
     updateUsersState(updated);
@@ -156,16 +145,11 @@ export default function UnifiedNationalSingleWindow() {
   const isDenied = (status) => status === 'Denied' || status === 'Rejected' || status === 'Gateway Failed';
   const isPending = (status) => !isApproved(status) && !isDenied(status);
 
-  const filteredApps = applications.filter(app => {
+  const displayedApps = applications.filter(app => {
     if (selectedFilter === 'Approved') return isApproved(app.status);
     if (selectedFilter === 'Pending') return isPending(app.status);
     if (selectedFilter === 'Denied') return isDenied(app.status);
     return true;
-  });
-
-  const displayedApps = filteredApps.filter(app => {
-    const query = searchTerm.toLowerCase();
-    return ( app.id.toLowerCase().includes(query) || app.product.toLowerCase().includes(query) || app.company.toLowerCase().includes(query) || app.type.toLowerCase().includes(query) || app.status.toLowerCase().includes(query) || (app.submittedAt && app.submittedAt.toLowerCase().includes(query)) );
   });
 
   // ==========================================
@@ -222,7 +206,6 @@ export default function UnifiedNationalSingleWindow() {
           .footer-bottom { border-top: 1px solid #2d3a35; text-align: center; padding: 20px; font-size: 13px; }
           .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #666; }
           
-          /* Shared Full-Screen Modal Overlay & Card Styles */
           .login-modal-overlay { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #013624; z-index: 2000; justify-content: center; align-items: center; }
           .login-card { background-color: #ffffff; padding: 40px; border-radius: 12px; width: 90%; max-width: 450px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
           .login-header { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 25px; }
@@ -260,7 +243,6 @@ export default function UnifiedNationalSingleWindow() {
         <header>
           <Link href="/" className="logo-container" style={{ textDecoration: "none" }}>
             <img src="/logo.png" alt="Nigeria Coat of Arms" />
-          
           </Link>
           <button className="menu-toggle" aria-label="Toggle Navigation" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             &#9776;
@@ -393,24 +375,10 @@ export default function UnifiedNationalSingleWindow() {
           <div className="login-modal-overlay" onClick={(e) => e.target.classList.contains('login-modal-overlay') && setActiveModal(null)}>
             <div className="login-card">
               <span className="close-btn" onClick={() => setActiveModal(null)}>&times;</span>
-              
               <div className="login-header" style={{ justifyContent: 'center' }}>
-  <img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain" />
-</div>
+                <img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain" />
+              </div>
               
-                
-                  
-                  
-                  
-                    
-                  
-              
-                
-                  
-                  
-                
-    
-
               {loginError && (
                 <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '4px', marginBottom: '15px', fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
                   {loginError}
@@ -445,24 +413,10 @@ export default function UnifiedNationalSingleWindow() {
           <div className="login-modal-overlay" onClick={(e) => e.target.classList.contains('login-modal-overlay') && setActiveModal(null)}>
             <div className="login-card">
               <span className="close-btn" onClick={() => setActiveModal(null)}>&times;</span>
+              <div className="login-header" style={{ justifyContent: 'center' }}>
+                <img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain" />
+              </div>
               
-              
-                <div className="login-header" style={{ justifyContent: 'center' }}>
-  <img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain" />
-</div>
-                
-                
-                    
-                    
-                    
-                  
-        
-                
-                  
-                  
-            
-              
-
               <h3 style={{ textTransform: 'uppercase', fontSize: '13px', letterSpacing: '0.05em', color: '#00563f', textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>
                 Create Portal Account
               </h3>
@@ -551,55 +505,68 @@ export default function UnifiedNationalSingleWindow() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 relative z-10">
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">
+              <h3 className="text-xl font-bold text-[#002855]">
                 {session.role === 'trader' && `Trader Portal - ${session.name}`}
                 {session.role === 'agency' && 'Regulatory & Review Portal'}
                 {session.role === 'admin' && 'System Governance & Gateway Portal'}
               </h3>
-              <p className="text-xs text-gray-500">Query records or click metric cards to filter status.</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {session.role === 'admin' 
+                    ? 'Platform-wide trade metrics, user account access control, and broadcast notices.' 
+                    : 'Click metric cards to filter status.'}
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-              <input type="text" placeholder="Query ID, Product, Company, Status..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none flex-grow sm:flex-grow-0 min-w-[260px]" />
+              {session.role === 'admin' && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-gray-700">Gateway Status:</span>
+                  <button 
+                    onClick={() => setGatewayStatus(prev => prev === 'Operational' ? 'Maintenance' : 'Operational')}
+                    className={`px-4 py-1.5 text-xs font-bold rounded shadow-sm transition ${gatewayStatus === 'Operational' ? 'bg-[#00a651] text-white hover:bg-green-600' : 'bg-red-600 text-white hover:bg-red-700'}`}
+                  >
+                    {gatewayStatus} (Toggle)
+                  </button>
+                </div>
+              )}
               {session.role === 'trader' && <button onClick={() => setShowNewAppModal(true)} className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition shadow whitespace-nowrap">+ New Application</button>}
             </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div onClick={() => setSelectedFilter('All')} className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'All' ? 'bg-gray-100 border-gray-800 ring-2 ring-gray-200' : 'bg-white border-gray-200 hover:border-gray-400'}`}>
-              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Total Applications</span><span className="text-3xl font-extrabold text-black">{applications.length}</span>
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">TOTAL APPLICATIONS</span><span className="text-3xl font-extrabold text-black">{applications.length}</span>
             </div>
             <div onClick={() => setSelectedFilter('Pending')} className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Pending' ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-100' : 'bg-white border-gray-200 hover:border-amber-300'}`}>
-              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Pending Review</span><span className="text-3xl font-extrabold text-amber-600">{applications.filter(a => isPending(a.status)).length}</span>
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">PENDING STATE</span><span className="text-3xl font-extrabold text-amber-600">{applications.filter(a => isPending(a.status)).length}</span>
             </div>
             <div onClick={() => setSelectedFilter('Approved')} className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Approved' ? 'bg-green-50 border-green-500 ring-2 ring-green-100' : 'bg-white border-gray-200 hover:border-green-300'}`}>
-              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Approved</span><span className="text-3xl font-extrabold text-green-700">{applications.filter(a => isApproved(a.status)).length}</span>
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">APPROVED STATE</span><span className="text-3xl font-extrabold text-[#00a651]">{applications.filter(a => isApproved(a.status)).length}</span>
             </div>
             <div onClick={() => setSelectedFilter('Denied')} className={`cursor-pointer p-5 rounded-xl shadow-sm border transition flex flex-col justify-center items-center ${selectedFilter === 'Denied' ? 'bg-red-50 border-red-500 ring-2 ring-red-100' : 'bg-white border-gray-200 hover:border-red-300'}`}>
-              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Denied / Blocked</span><span className="text-3xl font-extrabold text-red-600">{applications.filter(a => isDenied(a.status)).length}</span>
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">DENIED STATE</span><span className="text-3xl font-extrabold text-red-600">{applications.filter(a => isDenied(a.status)).length}</span>
             </div>
           </div>
 
           {session.role === 'admin' && (
             <>
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6 border-l-4 border-l-emerald-700">
-                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">System Broadcast Center</h4>
+                <h4 className="text-sm font-bold text-[#002855] uppercase tracking-wider mb-3">SYSTEM BROADCAST CENTER</h4>
                 <form onSubmit={handleSendBroadcast} className="flex gap-3">
-                  <input type="text" value={broadcastMessage} onChange={(e) => setBroadcastMessage(e.target.value)} placeholder="Type an operational notice for all active portal users..." className="flex-grow px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" />
-                  <button type="submit" className="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm whitespace-nowrap">Broadcast Notice</button>
+                  <input type="text" value={broadcastMessage} onChange={(e) => setBroadcastMessage(e.target.value)} placeholder="Type an operational notice for all active portal users..." className="flex-grow px-3 py-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-600 focus:outline-none" />
+                  <button type="submit" className="bg-emerald-800 hover:bg-emerald-900 text-white px-6 py-2 rounded text-xs font-bold transition shadow-sm whitespace-nowrap">Broadcast Notice</button>
                 </form>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-                <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                    <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Identity & Access Management</h4>
-                    <span className="text-xs text-gray-500 font-medium">Manage Agency & Trader Accounts</span>
+                <div className="p-4 bg-white border-b border-gray-200 flex justify-between items-center">
+                    <h4 className="text-sm font-bold text-[#002855] uppercase tracking-wider">IDENTITY & ACCESS MANAGEMENT</h4>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-white border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
+                      <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
                         <th className="py-3 px-4">User / Entity Name</th><th className="py-3 px-4">Role Area</th><th className="py-3 px-4">Account Status</th><th className="py-3 px-4">Access Controls</th>
                       </tr>
                     </thead>
@@ -623,36 +590,47 @@ export default function UnifiedNationalSingleWindow() {
           )}
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-4 bg-white border-b border-gray-200 flex justify-between items-center">
+              <h4 className="text-sm font-bold text-[#002855] uppercase tracking-wider">GLOBAL APPLICATION VIEW</h4>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-600">Filter by Application State:</span>
+                <select 
+                  value={selectedFilter} 
+                  onChange={(e) => setSelectedFilter(e.target.value)}
+                  className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-gray-500 bg-white"
+                >
+                  <option value="All">All</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Denied">Denied</option>
+                </select>
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[750px]">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
-                    <th className="py-3 px-4">Application ID</th><th className="py-3 px-4">Company</th><th className="py-3 px-4">Type</th><th className="py-3 px-4">Product</th>
-                    {session.role === 'agency' && <th className="py-3 px-4">Uploaded File</th>}
-                    <th className="py-3 px-4">Current State</th><th className="py-3 px-4">Actions & Flow</th>
+                  <tr className="bg-white border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
+                    <th className="py-3 px-4">ID</th>
+                    <th className="py-3 px-4">COMPANY</th>
+                    <th className="py-3 px-4">TYPE</th>
+                    <th className="py-3 px-4">PRODUCT</th>
+                    <th className="py-3 px-4">APPLICATION STATE</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm divide-y divide-gray-100">
                   {displayedApps.length > 0 ? displayedApps.map(app => (
-                    <tr key={app.id} className="hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-emerald-700">{app.id}</td><td className="py-3 px-4">{app.company}</td><td className="py-3 px-4">{app.type}</td><td className="py-3 px-4 font-medium">{app.product}</td>
-                      {session.role === 'agency' && (
-                        <td className="py-3 px-4">
-                          {app.attachedDocument ? <button onClick={() => setDocPreview(app.attachedDocument)} className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded text-xs font-bold hover:bg-emerald-100 transition shadow-sm">View Doc</button> : <span className="text-gray-400 text-xs italic">No Attachment</span>}
-                        </td>
-                      )}
-                      <td className="py-3 px-4">
-                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${isApproved(app.status) ? 'bg-green-100 text-green-800' : ''} ${isDenied(app.status) ? 'bg-red-100 text-red-800' : ''} ${isPending(app.status) ? 'bg-amber-100 text-amber-800' : ''}`}>{app.status}</span>
-                      </td>
-                      <td className="py-3 px-4 space-x-2 whitespace-nowrap">
-                        {isApproved(app.status) && <button onClick={() => { setTrackedApp(app); setShowPermit(true); }} className="bg-emerald-800 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-emerald-900 transition shadow-sm">View Permit</button>}
-                        <button onClick={() => setTrackedApp(app)} className="bg-emerald-700 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-emerald-800 transition shadow-sm">Audit Flow</button>
-                        {session.role === 'agency' && isPending(app.status) && (
-                          <><button onClick={() => handleAgencyAction(app.id, 'Approved')} className="bg-green-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-green-700 transition shadow-sm">Approve</button><button onClick={() => handleAgencyAction(app.id, 'Denied')} className="bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-red-700 transition shadow-sm">Deny</button></>
-                        )}
+                    <tr key={app.id} className="hover:bg-gray-50 bg-white">
+                      <td className="py-4 px-4 font-medium text-[#00a651]">{app.id}</td>
+                      <td className="py-4 px-4 text-gray-700">{app.company}</td>
+                      <td className="py-4 px-4 text-gray-700">{app.type}</td>
+                      <td className="py-4 px-4 text-gray-700">{app.product}</td>
+                      <td className="py-4 px-4">
+                        <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${isApproved(app.status) ? 'bg-[#e5f6ed] text-[#00a651]' : ''} ${isDenied(app.status) ? 'bg-red-100 text-red-800' : ''} ${isPending(app.status) ? 'bg-amber-100 text-amber-800' : ''}`}>
+                          {app.status}
+                        </span>
                       </td>
                     </tr>
-                  )) : <tr><td colSpan="7" className="py-8 text-center text-gray-400 text-sm">No results match your query criteria.</td></tr>}
+                  )) : <tr><td colSpan="5" className="text-center py-6 text-gray-500">No applications match your filter.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -660,93 +638,45 @@ export default function UnifiedNationalSingleWindow() {
         </div>
       </main>
 
-      {/* Internal Portal Modals */}
+      {/* New Application Modal */}
       {showNewAppModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">Submit New Trade Application</h3>
-              <button onClick={() => setShowNewAppModal(false)} className="text-gray-400 hover:text-gray-600 font-bold"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex justify-center items-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="bg-emerald-900 p-4 flex justify-between items-center text-white">
+              <h3 className="font-bold text-sm uppercase">Submit New Application</h3>
+              <button onClick={() => setShowNewAppModal(false)} className="text-emerald-200 hover:text-white font-bold">&times;</button>
             </div>
-            <form onSubmit={handleFormSubmitApplication} className="space-y-4">
+            <form onSubmit={handleFormSubmitApplication} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Permit / License Type</label>
-                <select value={newAppType} onChange={(e) => setNewAppType(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-white">
-                  <option value="Import Permit">Import Permit</option><option value="Export License">Export License</option><option value="Transit Goods Clearance">Transit Goods Clearance</option>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Application Type</label>
+                <select value={newAppType} onChange={e => setNewAppType(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-none">
+                  <option>Import Permit</option><option>Export License</option><option>Customs Clearance</option>
                 </select>
               </div>
-              <div><label className="block text-xs font-bold text-gray-700 uppercase mb-1">Company Name</label><input type="text" required placeholder="e.g. Apex Logistics Ltd" value={newAppCompany} onChange={(e) => setNewAppCompany(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" /></div>
-              <div><label className="block text-xs font-bold text-gray-700 uppercase mb-1">Product Description</label><input type="text" required placeholder="e.g. Industrial Solar Panels" value={newAppProduct} onChange={(e) => setNewAppProduct(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" /></div>
-              <div><label className="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity / Volume</label><input type="text" required placeholder="e.g. 500 Units" value={newAppQuantity} onChange={(e) => setNewAppQuantity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none" /></div>
+              {session.role !== 'trader' && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Filing on Behalf Of (Company Name)</label>
+                  <input type="text" required value={newAppCompany} onChange={e => setNewAppCompany(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-none" />
+                </div>
+              )}
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Attach Supporting Document (Max 5MB)</label>
-                <input type="file" onChange={handleFileChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
-                {fileError && <p className="text-xs text-red-600 mt-1 font-bold">{fileError}</p>}
+                <label className="block text-xs font-bold text-gray-700 mb-1">Product Description</label>
+                <input type="text" required value={newAppProduct} onChange={e => setNewAppProduct(e.target.value)} placeholder="e.g. Agricultural Machinery" className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-none" />
               </div>
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-                <button type="button" onClick={() => setShowNewAppModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-emerald-800 text-white rounded-lg text-xs font-bold hover:bg-emerald-900 transition">Submit Application</button>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Quantity / Volume</label>
+                <input type="text" required value={newAppQuantity} onChange={e => setNewAppQuantity(e.target.value)} placeholder="e.g. 5 Containers" className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-none" />
+              </div>
+              <div className="border-2 border-dashed border-gray-300 p-4 rounded-lg text-center bg-gray-50">
+                <p className="text-xs text-gray-500 mb-2">Attach Supporting Document (Max 5MB)</p>
+                <input type="file" required onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg" className="text-xs text-gray-700 w-full" />
+                {fileError && <p className="text-red-500 text-[10px] mt-1 font-bold">{fileError}</p>}
+              </div>
+              <div className="pt-2 flex gap-3">
+                <button type="button" onClick={() => setShowNewAppModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg text-sm font-bold hover:bg-gray-200">Cancel</button>
+                <button type="submit" className="flex-1 bg-emerald-800 text-white py-2 rounded-lg text-sm font-bold hover:bg-emerald-900 shadow">Submit to Gateway</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {trackedApp && !showPermit && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full shadow-2xl overflow-hidden">
-            <div className="bg-[#1e4638] text-white p-6 relative">
-              <button onClick={() => setTrackedApp(null)} className="absolute top-4 right-4 text-white hover:text-gray-300 font-bold"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 mb-1">Transaction Audit Flow</p><h2 className="text-2xl font-black tracking-tight">{trackedApp.id}</h2><p className="text-sm text-emerald-100">{trackedApp.product}</p>
-            </div>
-            <div className="p-6 bg-gray-50">
-              <div className="relative pl-6 border-l-2 border-emerald-600 space-y-6">
-                <div className="relative"><div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg></div><h4 className="font-bold text-gray-900 text-sm">Application Submitted</h4><p className="text-xs text-gray-500">Documentation uploaded by {trackedApp.company}</p><p className="text-xs text-gray-400 mt-0.5">{trackedApp.submittedAt}</p></div>
-                <div className="relative"><div className="absolute -left-[35px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg></div><h4 className="font-bold text-gray-900 text-sm">Automated Compliance Gateway</h4><p className="text-xs text-gray-500">Product parameters and trade regulation checks passed</p></div>
-                <div className="relative"><div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center shadow-sm ${isPending(trackedApp.status) ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'}`}>{isPending(trackedApp.status) ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 12a8 8 0 018-8v8H4z"/></svg> : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>}</div><h4 className="font-bold text-gray-900 text-sm">Customs and Regulatory Review</h4><p className="text-xs text-gray-500">{isPending(trackedApp.status) ? 'Document verification in progress' : 'Document verification completed'}</p></div>
-                <div className="relative"><div className={`absolute -left-[35px] top-0 rounded-full w-6 h-6 flex items-center justify-center shadow-sm ${isApproved(trackedApp.status) ? 'bg-emerald-600 text-white' : isDenied(trackedApp.status) ? 'bg-red-600 text-white' : 'bg-gray-300 text-gray-500'}`}>{isApproved(trackedApp.status) ? <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg> : isDenied(trackedApp.status) ? <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg> : <span className="text-[10px] font-bold">...</span>}</div><h4 className="font-bold text-gray-900 text-sm">Final Decision</h4><p className="text-xs text-gray-500">{isApproved(trackedApp.status) ? 'Digital Permit released successfully' : isDenied(trackedApp.status) ? 'Application blocked/denied by system' : 'Awaiting final decision'}</p></div>
-              </div>
-              <div className="mt-6 text-center"><button onClick={() => setTrackedApp(null)} className="text-xs text-gray-500 hover:text-gray-700 font-bold transition">Close Window</button></div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showPermit && trackedApp && (
-        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-8 shadow-2xl relative min-h-[500px]">
-            <button onClick={() => { setShowPermit(false); setTrackedApp(null); }} className="absolute top-4 right-4 text-gray-400 hover:text-black font-bold text-lg"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-            <div className="border-4 border-double border-emerald-800 p-8 h-full flex flex-col items-center text-center relative bg-slate-50/30">
-              <img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain" />
-              <h1 className="text-2xl font-black text-emerald-900 uppercase tracking-widest border-b-2 border-emerald-800 pb-2 mb-8 relative z-10">Official Trade Permit</h1>
-              <div className="w-full text-left space-y-4 relative z-10 text-sm">
-                <p><strong className="text-gray-700 w-40 inline-block">Permit No:</strong> <span className="font-mono font-bold">{trackedApp.id}-PERMIT</span></p>
-                <p><strong className="text-gray-700 w-40 inline-block">Issued To:</strong> {trackedApp.company}</p>
-                <p><strong className="text-gray-700 w-40 inline-block">Commodity:</strong> {trackedApp.product}</p>
-                <p><strong className="text-gray-700 w-40 inline-block">Quantity Authorized:</strong> {trackedApp.quantity || 'Standard Unit'}</p>
-                <p><strong className="text-gray-700 w-40 inline-block">Issue Date:</strong> {trackedApp.submittedAt || new Date().toISOString().split('T')[0]}</p>
-                <p><strong className="text-gray-700 w-40 inline-block">Status:</strong> <span className="text-green-700 font-bold uppercase">VALID & AUTHORIZED</span></p>
-              </div>
-              <div className="mt-16 w-full pt-8 flex justify-between items-end relative z-10">
-                <div className="text-center"><div className="border-b border-black w-40 mb-2"></div><p className="text-[10px] font-bold uppercase text-gray-600">Authorized Signature</p></div>
-                <div className="w-28 h-28 border-4 border-double border-red-800 rounded-full flex flex-col items-center justify-center p-1 text-center bg-red-50/10 transform -rotate-12 opacity-90 pointer-events-none"><div className="w-full h-full border border-dashed border-red-700 rounded-full flex flex-col items-center justify-center p-1"><span className="text-[9px] font-black uppercase tracking-widest text-red-900 leading-tight">Official Seal</span><span className="text-[7px] font-bold uppercase tracking-tight text-red-800 mt-0.5">Validated & Approved</span></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {docPreview && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900 text-sm">Attached Document Preview</h3>
-              <button onClick={() => setDocPreview(null)} className="text-gray-400 hover:text-gray-600 font-bold"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-            </div>
-            <div className="max-h-96 overflow-auto border border-gray-200 rounded-lg p-2 bg-gray-50 flex justify-center">
-              {docPreview.startsWith('data:image') ? <img src={docPreview} alt="Attached Document" className="max-w-full h-auto object-contain" /> : <div className="py-12 text-center text-gray-600 text-xs"><p className="font-bold mb-2">Document Data Loaded Successfully</p><a href={docPreview} download="attached-document" className="text-emerald-700 underline font-bold">Download File</a></div>}
-            </div>
-            <button onClick={() => setDocPreview(null)} className="w-full mt-4 bg-gray-800 text-white py-2 rounded-lg text-xs font-bold hover:bg-gray-900">Close Preview</button>
           </div>
         </div>
       )}
