@@ -394,20 +394,22 @@ export default function UnifiedNationalSingleWindow() {
             <div className="login-card">
               <span className="close-btn" onClick={() => setActiveModal(null)}>&times;</span>
               
-              <div className="login-header">
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <img src="/logo.png" alt="Nigeria Coat of Arms" />
-                  <svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="#00563f" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="2" y1="12" x2="22" y2="12"></line>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                  </svg>
-                </div>
-                <div className="login-header-text">
-                  <span>National</span>
-                  <span>Single Window</span>
-                </div>
-              </div>
+              <div className="login-header" style={{ justifyContent: 'center' }}>
+  <img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain" />
+</div>
+              
+                
+                  
+                  
+                  
+                    
+                  
+              
+                
+                  
+                  
+                
+    
 
               {loginError && (
                 <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '4px', marginBottom: '15px', fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
@@ -444,20 +446,22 @@ export default function UnifiedNationalSingleWindow() {
             <div className="login-card">
               <span className="close-btn" onClick={() => setActiveModal(null)}>&times;</span>
               
-              <div className="login-header">
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <img src="/logo.png" alt="Nigeria Coat of Arms" />
-                  <svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="#00563f" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="2" y1="12" x2="22" y2="12"></line>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                  </svg>
-                </div>
-                <div className="login-header-text">
-                  <span>National</span>
-                  <span>Single Window</span>
-                </div>
-              </div>
+              
+                <div className="login-header" style={{ justifyContent: 'center' }}>
+  <img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain" />
+</div>
+                
+                
+                    
+                    
+                    
+                  
+        
+                
+                  
+                  
+            
+              
 
               <h3 style={{ textTransform: 'uppercase', fontSize: '13px', letterSpacing: '0.05em', color: '#00563f', textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>
                 Create Portal Account
