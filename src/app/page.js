@@ -180,7 +180,7 @@ export default function UnifiedNationalSingleWindow() {
           body { background-color: #f8f9fa; color: #333; }
           header { display: flex; justify-content: space-between; align-items: center; background-color: #ffffff; padding: 15px 5%; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
           .logo-container { display: flex; align-items: center; gap: 15px; }
-          .logo-container img { height: 50px; width: 50px; background-color: #ddd; }
+          .logo-container img { height: 50px; width: auto; object-fit: contain; }
           .logo-container h1 { font-size: 22px; color: #00563f; }
           nav ul { display: flex; list-style: none; gap: 25px; }
           nav a { text-decoration: none; color: #333; font-weight: 600; }
@@ -260,7 +260,7 @@ export default function UnifiedNationalSingleWindow() {
         <header>
           <Link href="/" className="logo-container" style={{ textDecoration: "none" }}>
             <img src="/logo.png" alt="Nigeria Coat of Arms" />
-            <h1>National Single Window</h1>
+          
           </Link>
           <button className="menu-toggle" aria-label="Toggle Navigation" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             &#9776;
@@ -281,7 +281,7 @@ export default function UnifiedNationalSingleWindow() {
         </header>
 
         <section id="home" className="hero-section">
-          <h2>Christopher's Premier Trade Platform</h2>
+          <h2>National Premier Trade Platform</h2>
           <p>Digital Trade Gateway</p>
           <p>Connecting Nigeria's trade ecosystem through innovative digital solutions</p>
           <div className="hero-actions">
@@ -713,7 +713,7 @@ export default function UnifiedNationalSingleWindow() {
           <div className="bg-white rounded-lg max-w-2xl w-full p-8 shadow-2xl relative min-h-[500px]">
             <button onClick={() => { setShowPermit(false); setTrackedApp(null); }} className="absolute top-4 right-4 text-gray-400 hover:text-black font-bold text-lg"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
             <div className="border-4 border-double border-emerald-800 p-8 h-full flex flex-col items-center text-center relative bg-slate-50/30">
-              <img src="/logo.png" alt="Logo" className="h-20 mb-4 opacity-10 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 object-contain pointer-events-none" />
+              <img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain" />
               <h1 className="text-2xl font-black text-emerald-900 uppercase tracking-widest border-b-2 border-emerald-800 pb-2 mb-8 relative z-10">Official Trade Permit</h1>
               <div className="w-full text-left space-y-4 relative z-10 text-sm">
                 <p><strong className="text-gray-700 w-40 inline-block">Permit No:</strong> <span className="font-mono font-bold">{trackedApp.id}-PERMIT</span></p>
