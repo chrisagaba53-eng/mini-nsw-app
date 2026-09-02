@@ -685,8 +685,18 @@ export default function UnifiedNationalSingleWindow() {
                         </td>
                       )}
                       <td className="py-3 px-4">
-                        <span className="px-2.5 py-1 text-xs font-semibold bg-green-50 text-green-700 rounded border border-green-200 uppercase tracking-wider">{app.status}</span>
-                      </td>
+  <span className={`px-2.5 py-1 text-xs font-semibold rounded border uppercase tracking-wider ${
+    isApproved(app.status) 
+      ? 'bg-green-50 text-green-700 border-green-200' 
+      : isDenied(app.status) 
+        ? 'bg-red-50 text-red-700 border-red-200' 
+        : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+  }`}>
+    {app.status}
+  </span>
+</td>
+                      
+                      
                       {session.role !== 'admin' && (
                         <td className="py-3 px-4 space-x-2 whitespace-nowrap">
                           {isApproved(app.status) && <button onClick={() => { setTrackedApp(app); setShowPermit(true); }} className="bg-emerald-800 text-white px-2.5 py-1.5 rounded text-xs font-bold hover:bg-emerald-900 transition shadow-sm">View Permit</button>}
